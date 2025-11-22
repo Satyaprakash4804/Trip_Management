@@ -170,22 +170,39 @@ function loginUser() {
         body: JSON.stringify({username, password})
     })
     .then(async res => {
+
+        // --- Check HTTP Status for Server Errors ---
+        if (!res.ok) {
+            if (res.status >= 500) {
+                return showMessage("⚠️ Server error (" + res.status + "). Try again later.", "red");
+            }
+            if (res.status === 404) {
+                return showMessage("API not found (404). Check your backend route.", "red");
+            }
+            if (res.status === 401) {
+                return showMessage("Invalid username or password.", "red");
+            }
+            if (res.status === 403) {
+                return showMessage("Access forbidden.", "red");
+            }
+
+            return showMessage("Unexpected error (" + res.status + ").", "red");
+        }
+
         let data = await res.json().catch(() => null);
+        if (!data) return showMessage("Bad response from server.", "red");
 
-        if (!data) return showMessage("Server error.", "red");
-
-        // NEW: Registration not complete yet
+        // If user needs to register
         if (data.need_register) {
             window.location.href = `/register/${data.user_id}`;
             return;
         }
 
-        // Normal login
         if (!data.success) return showMessage(data.message, "red");
 
         redirectByRole(data.user.role);
     })
-    .catch(() => showMessage("Network error.", "red"));
+    .catch(() => showMessage("Network error. Server unreachable.", "red"));
 }
 
 function showMessage(msg, color) {

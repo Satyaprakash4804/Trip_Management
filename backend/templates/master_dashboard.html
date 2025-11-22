@@ -1,149 +1,281 @@
-{% extends "base.html" %}
-{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Master Dashboard</title>
 
 <style>
-    .logout-btn {
-        position:absolute;top:20px;right:20px;
-        background:#d32f2f;color:white;padding:10px 16px;
-        border-radius:6px;border:none;cursor:pointer;
-    }
-    .logout-btn:hover { background:#b71c1c; }
+/* -------------------------------------- VARIABLES -------------------------------------- */
+:root {
+    --sky-blue: #00B4D8;
+    --dark-blue: #0077B6;
+    --purple: #7209B7;
+    --light-pink: #F72585;
+    --yellow: #FFD60A;
+    --text-light: #F4F7F9;
+    --text-dark: #333;
+    --background: #F5F7FA;
+    --card-bg: #ffffff;
+    --sidebar-width: 260px;
+}
 
-    .section-card {
-        background:white;padding:20px;border-radius:10px;
-        margin-top:20px;box-shadow:0 4px 10px rgba(0,0,0,0.1);
-    }
+*{margin:0;padding:0;box-sizing:border-box;}
 
-    input, select {
-        padding:10px;width:100%;margin-top:8px;
-        border:1px solid #bbb;border-radius:6px;
-    }
+/* -------------------------------------- BODY -------------------------------------- */
+body{
+    font-family:'Segoe UI',Roboto,Arial,sans-serif;
+    background:linear-gradient(135deg,#E3F2FD,#F8BBD0,#FFF9C4,#E1BEE7);
+    background-size:400% 400%;
+    animation:backgroundFlow 15s ease infinite;
+    color:#333;
+}
 
-    .btn {
-        padding:8px 14px;border:none;border-radius:6px;
-        background:#1a237e;color:white;cursor:pointer;
-        font-size:14px;
-    }
+/* -------------------------------------- HEADER -------------------------------------- */
+.header {
+    background: linear-gradient(135deg,var(--dark-blue),var(--purple),var(--light-pink),var(--sky-blue));
+    color:white;
+    padding:12px 20px;
+    position:fixed;top:0;width:100%;
+    z-index:100;
+    display:flex;align-items:center;
+}
+.menu-icon { font-size:28px;cursor:pointer;margin-right:20px; }
 
-    table { width:100%; border-collapse:collapse; }
-    th, td { padding:10px;border-bottom:1px solid #ddd; font-size:14px; }
+.header-title {
+    font-size:1.6rem;
+    font-weight:700;
+    background:linear-gradient(90deg,#fff,var(--yellow),#fff);
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+}
 
-    .badge { padding:4px 10px;border-radius:6px;color:white;font-size:12px; }
-    .badge-pending { background:#ffa000; }
-    .badge-verified { background:#43a047; }
+.user-info {
+    position:absolute;
+    right:20px; top:12px;
+    font-size:14px;
+    color:#fff;
+    background:rgba(255,255,255,0.2);
+    padding:6px 14px;
+    border-radius:20px;
+}
 
-    .table-box {
-        max-height:300px;overflow-y:auto;margin-top:12px;
-        border:1px solid #ddd;border-radius:6px;
-    }
-    .table-box::-webkit-scrollbar { width:8px; }
-    .table-box::-webkit-scrollbar-thumb { background:#9e9e9e;border-radius:4px; }
+/* -------------------------------------- SIDEBAR -------------------------------------- */
+.sidebar{
+    height:100vh;width:0;
+    background:linear-gradient(180deg,var(--purple),var(--dark-blue),var(--sky-blue));
+    position:fixed;top:0;left:0;
+    padding-top:65px;
+    overflow:hidden;
+    transition:.4s;
+}
+.sidebar.open{ width:var(--sidebar-width); }
 
-    /* ---------- EDIT MODAL ---------- */
-    #editModal {
-        position:fixed;top:0;left:0;width:100%;height:100%;
-        background:rgba(0,0,0,0.6);display:none;
-        justify-content:center;align-items:center;
-    }
-    .edit-box {
-        background:white;padding:25px;border-radius:10px;
-        width:90%;max-width:400px;
-    }
+.sidebar a{
+    display:block;padding:16px 25px;color:white;
+    border-bottom:1px solid rgba(255,255,255,0.1);
+    font-size:1rem;text-decoration:none;
+}
+.sidebar a:hover{ background:rgba(255,255,255,0.2); }
+
+.logout-btn{
+    margin:20px;padding:12px 25px;
+    background:#d32f2f;color:white;border:none;
+    border-radius:8px;cursor:pointer;width:calc(100% - 40px);
+}
+.logout-btn:hover{ background:#b71c1c; }
+
+/* -------------------------------------- MAIN CONTENT -------------------------------------- */
+.main-content{
+    padding-top:90px;padding:20px;
+}
+
+/* -------------------------------------- TABLE CARD -------------------------------------- */
+.table-card{
+    background:white;
+    padding:20px;
+    border-radius:14px;
+    margin-bottom:25px;
+    box-shadow:0 4px 20px rgba(0,0,0,0.1);
+}
+
+.table-card h3{
+    margin-bottom:12px;
+    color:#1a237e;
+}
+
+/* SEARCH BAR */
+.search-box input{
+    width:100%;
+    padding:10px;
+    border-radius:8px;
+    border:1px solid #aaa;
+    margin-bottom:12px;
+}
+
+/* TABLE */
+table{ width:100%;border-collapse:collapse; }
+th{
+    background:#1a237e;color:white;
+    padding:12px;position:sticky;top:0;
+}
+td{ padding:10px;background:white;border-bottom:1px solid #ddd; }
+
+.selfie-img{
+    width:55px;height:55px;object-fit:cover;
+    border-radius:8px;
+}
+
+.verified{ background:#4caf50;color:white;padding:4px 10px;border-radius:12px;font-size:12px; }
+.pending{ background:#ffa000;color:white;padding:4px 10px;border-radius:12px;font-size:12px; }
+
+.btn-edit{
+    background:#0277bd;color:white;padding:6px 12px;border:none;
+    border-radius:6px;cursor:pointer;
+}
+.btn-del{
+    background:#d32f2f;color:white;padding:6px 12px;border:none;
+    border-radius:6px;cursor:pointer;
+}
+
+/* -------------------------------------- MODAL -------------------------------------- */
+.modal-bg{
+    position:fixed;top:0;left:0;width:100%;height:100%;
+    background:rgba(0,0,0,0.5);
+    display:none;align-items:center;justify-content:center;
+}
+
+.modal-card{
+    width:90%;max-width:400px;
+    background:white;padding:20px;
+    border-radius:10px;
+}
+
+.modal-card input{
+    width:100%;padding:10px;
+    border-radius:6px;border:1px solid #aaa;
+    margin-bottom:10px;
+}
 </style>
+</head>
 
-<button class="logout-btn" onclick="logoutUser()">Logout</button>
+<body>
 
-<h2 style="color:#1a237e;margin-top:60px;">Master Dashboard</h2>
-
-<!-- ---------------------- CREATE USER ---------------------- -->
-<div class="section-card">
-    <h3>Create User</h3>
-    <select id="role">
-        <option value="student">Student</option>
-        <option value="admin">Admin</option>
-        <option value="super_admin">Super Admin</option>
-    </select>
-
-    <input id="username" placeholder="Username">
-    <input id="password" placeholder="Password">
-
-    <button class="btn" onclick="createUser()">Create User</button>
-    <p id="createMsg"></p>
+<!-- ---------------------- HEADER ---------------------- -->
+<div class="header">
+    <span class="menu-icon" onclick="toggleSidebar()">&#9776;</span>
+    <h2 class="header-title">Master Dashboard</h2>
+    <span class="user-info" id="userInfo">User: -</span>
 </div>
 
-<!-- ---------------------- STUDENTS TABLE ---------------------- -->
-<div class="section-card">
-    <h3>All Students</h3>
-    <button class="btn" onclick="loadStudents()">Refresh</button>
+<!-- ---------------------- SIDEBAR ---------------------- -->
+<div id="sidebar" class="sidebar">
+    <a href="/master/dashboard">🏠 Dashboard</a>
+    <a href="/master/master_students">📚 Student List</a>
+    <a href="/master/master_admins">👥 Admin List</a>
+    <a href="/master/attendance_table">📝 Attendance</a>
+    <a href="/master/notification">🔔 Notifications</a>
 
-    <div class="table-box">
+    <button class="logout-btn" onclick="logoutUser()">Logout</button>
+</div>
+
+<!-- ---------------------- MAIN CONTENT ---------------------- -->
+<div class="main-content">
+
+    <!-- CREATE USER -->
+    <div class="table-card">
+        <h3>Create User</h3>
+        <select id="role">
+            <option value="student">Student</option>
+            <option value="admin">Admin</option>
+            <option value="super_admin">Super Admin</option>
+        </select>
+        <input id="username" placeholder="Username">
+        <input id="password" placeholder="Password">
+
+        <button onclick="createUser()">Create</button>
+        <p id="createMsg"></p>
+    </div>
+
+    <!-- STUDENT TABLE -->
+    <div class="table-card">
+        <h3>Students</h3>
+
+        <div class="search-box">
+            <input id="searchStudents" placeholder="Search student..." onkeyup="filterStudents()">
+        </div>
+
         <table id="studentsTable">
             <thead>
                 <tr>
-                    <th>Username</th><th>Name</th><th>Mobile</th><th>Email</th><th>College ID</th>
-                    <th>Status</th><th>Actions</th>
+                    <th>Username</th><th>Name</th><th>Mobile</th><th>Email</th>
+                    <th>College ID</th><th>Status</th><th>Edit</th><th>Delete</th>
                 </tr>
             </thead>
             <tbody></tbody>
         </table>
     </div>
-</div>
 
-<!-- ---------------------- ADMINS TABLE ---------------------- -->
-<div class="section-card">
-    <h3>All Admins</h3>
-    <button class="btn" onclick="loadAdmins()">Refresh</button>
+    <!-- ADMIN TABLE -->
+    <div class="table-card">
+        <h3>Admins</h3>
 
-    <div class="table-box">
+        <div class="search-box">
+            <input id="searchAdmins" placeholder="Search admin..." onkeyup="filterAdmins()">
+        </div>
+
         <table id="adminsTable">
             <thead>
                 <tr>
-                    <th>Username</th><th>Name</th><th>Mobile</th><th>Email</th><th>College ID</th>
-                    <th>Status</th><th>Actions</th>
+                    <th>Username</th><th>Name</th><th>Mobile</th><th>Email</th>
+                    <th>College ID</th><th>Selfie</th><th>Status</th><th>Edit</th><th>Delete</th>
                 </tr>
             </thead>
             <tbody></tbody>
         </table>
     </div>
-</div>
 
-<!-- ---------------------- GEOFENCE ---------------------- -->
-<div class="section-card">
-    <h3>Set Attendance Geofence</h3>
-    <input id="landmark" placeholder="Location Landmark">
-    <button class="btn" onclick="setGeo()">Use My Current Location</button>
-    <p id="geoMsg"></p>
 </div>
 
 <!-- ---------------------- EDIT MODAL ---------------------- -->
-<div id="editModal">
-    <div class="edit-box">
+<div id="modal" class="modal-bg">
+    <div class="modal-card">
         <h3>Edit User</h3>
+
         <input id="edit_name" placeholder="Full Name">
         <input id="edit_mobile" placeholder="Mobile">
         <input id="edit_email" placeholder="Email">
-        <input id="edit_college" placeholder="College ID">
-        
-        <button class="btn" onclick="saveEdit()">Save</button>
-        <button class="btn" style="background:gray;" onclick="closeEdit()">Cancel</button>
-        <p id="editMsg"></p>
+        <input id="edit_college_id" placeholder="College ID">
+
+        <button class="btn-edit" onclick="saveEdit()">Save</button>
+        <button class="btn-del" onclick="closeModal()">Cancel</button>
     </div>
 </div>
 
 <script>
-
-let currentEditId = null;
-
-// ---------------- LOGOUT ----------------
-function logoutUser() {
-    fetch("/api/auth/logout")
-    .then(() => window.location.href="/login");
+/* ---------------------- SIDEBAR ---------------------- */
+function toggleSidebar(){
+    document.getElementById("sidebar").classList.toggle("open");
 }
 
+/* ---------------------- USER TOP BAR ---------------------- */
+let user = JSON.parse(localStorage.getItem("user"));
+if(user){
+    document.getElementById("userInfo").innerHTML = user.username + " (" + user.role + ")";
+}
 
-// ---------------- CREATE USER ----------------
+/* ---------------------- LOGOUT ---------------------- */
+function logoutUser(){
+    fetch("/api/auth/logout")
+    .then(()=>{
+        localStorage.clear();
+        window.location.href="/login";
+    });
+}
+
+/* ---------------------- CREATE USER ---------------------- */
 function createUser(){
-    let data = {
+    let obj = {
         role: role.value,
         username: username.value,
         password: password.value
@@ -152,7 +284,7 @@ function createUser(){
     fetch("/api/master/create_user", {
         method:"POST",
         headers:{"Content-Type":"application/json"},
-        body:JSON.stringify(data)
+        body:JSON.stringify(obj)
     })
     .then(r=>r.json())
     .then(d=>{
@@ -162,112 +294,130 @@ function createUser(){
     });
 }
 
-
-// ---------------- LOAD STUDENTS ----------------
+/* ---------------------- STUDENT TABLE ---------------------- */
 function loadStudents(){
     fetch("/api/master/students")
     .then(r=>r.json())
-    .then(r=>{
+    .then(res=>{
         let tbody = document.querySelector("#studentsTable tbody");
         tbody.innerHTML = "";
-        r.data.forEach(u=>{
+
+        res.data.forEach(s=>{
             tbody.innerHTML += `
                 <tr>
-                    <td>${u.username}</td>
-                    <td>${u.name ?? "-"}</td>
-                    <td>${u.mobile ?? "-"}</td>
-                    <td>${u.email ?? "-"}</td>
-                    <td>${u.college_id ?? "-"}</td>
-                    <td>${u.is_verified ? 
-                        "<span class='badge badge-verified'>Verified</span>" : 
-                        "<span class='badge badge-pending'>Pending</span>"} 
-                    </td>
-                    <td>
-                        <button class='btn' onclick="openEdit(${u.id}, '${u.name}', '${u.mobile}', '${u.email}', '${u.college_id}')">Edit</button>
-                        <button class='btn' onclick="deleteUser(${u.id})">Delete</button>
-                    </td>
+                    <td>${s.username}</td>
+                    <td>${s.name || "-"}</td>
+                    <td>${s.mobile || "-"}</td>
+                    <td>${s.email || "-"}</td>
+                    <td>${s.college_id || "-"}</td>
+                    <td>${s.is_verified ? 
+                        "<span class='verified'>Verified</span>" :
+                        "<span class='pending'>Pending</span>"
+                    }</td>
+
+                    <td><button class="btn-edit"
+                        onclick="openEdit(${s.id}, '${s.name}', '${s.mobile}', '${s.email}', '${s.college_id}')">
+                        Edit
+                    </button></td>
+
+                    <td><button class="btn-del" onclick="deleteUser(${s.id})">Delete</button></td>
                 </tr>
             `;
         });
     });
 }
 
+function filterStudents(){
+    let val = searchStudents.value.toLowerCase();
+    let rows = document.querySelectorAll("#studentsTable tbody tr");
+    rows.forEach(r=> r.style.display = r.innerText.toLowerCase().includes(val) ? "" : "none");
+}
 
-// ---------------- LOAD ADMINS ----------------
+/* ---------------------- ADMIN TABLE ---------------------- */
 function loadAdmins(){
     fetch("/api/master/admins")
     .then(r=>r.json())
-    .then(r=>{
+    .then(res=>{
         let tbody = document.querySelector("#adminsTable tbody");
         tbody.innerHTML = "";
-        r.data.forEach(u=>{
+
+        res.data.forEach(a=>{
+            let selfieHtml = a.selfie
+                ? `<img src="/${a.selfie}" class="selfie-img">`
+                : `<span style="color:#888;">No Image</span>`;
+
             tbody.innerHTML += `
                 <tr>
-                    <td>${u.username}</td>
-                    <td>${u.name ?? "-"}</td>
-                    <td>${u.mobile ?? "-"}</td>
-                    <td>${u.email ?? "-"}</td>
-                    <td>${u.college_id ?? "-"}</td>
-                    <td>${u.is_verified ? 
-                        "<span class='badge badge-verified'>Verified</span>" : 
-                        "<span class='badge badge-pending'>Pending</span>"} 
-                    </td>
+                    <td>${a.username}</td>
+                    <td>${a.name || "-"}</td>
+                    <td>${a.mobile || "-"}</td>
+                    <td>${a.email || "-"}</td>
+                    <td>${a.college_id || "-"}</td>
+                    <td>${selfieHtml}</td>
+                    <td>${a.is_verified ? "<span class='verified'>Verified</span>" : "<span class='pending'>Pending</span>"}</td>
+
                     <td>
-                        <button class='btn' onclick="openEdit(${u.id}, '${u.name}', '${u.mobile}', '${u.email}', '${u.college_id}')">Edit</button>
-                        <button class='btn' onclick="deleteUser(${u.id})">Delete</button>
+                        <button class="btn-edit" 
+                        onclick="openEdit(${a.id}, '${a.name}', '${a.mobile}', '${a.email}', '${a.college_id}')">Edit</button>
                     </td>
+
+                    <td><button class="btn-del" onclick="deleteUser(${a.id})">Delete</button></td>
                 </tr>
             `;
         });
     });
 }
 
-
-// ---------------- OPEN / CLOSE EDIT MODAL ----------------
-function openEdit(id, name, mobile, email, college){
-    currentEditId = id;
-
-    edit_name.value = name === "null" ? "" : name;
-    edit_mobile.value = mobile === "null" ? "" : mobile;
-    edit_email.value = email === "null" ? "" : email;
-    edit_college.value = college === "null" ? "" : college;
-
-    editModal.style.display = "flex";
+function filterAdmins(){
+    let val = searchAdmins.value.toLowerCase();
+    let rows = document.querySelectorAll("#adminsTable tbody tr");
+    rows.forEach(r=> r.style.display = r.innerText.toLowerCase().includes(val) ? "" : "none");
 }
 
-function closeEdit(){
-    editModal.style.display = "none";
+/* ---------------------- MODAL ---------------------- */
+let currentID = null;
+
+function openEdit(id, name, mobile, email, college_id){
+    currentID = id;
+    edit_name.value = name;
+    edit_mobile.value = mobile;
+    edit_email.value = email;
+    edit_college_id.value = college_id;
+
+    modal.style.display = "flex";
 }
 
+function closeModal(){
+    modal.style.display = "none";
+}
 
-// ---------------- SAVE EDIT ----------------
+/* ---------------------- SAVE EDIT ---------------------- */
 function saveEdit(){
     let data = {
         name: edit_name.value,
         mobile: edit_mobile.value,
         email: edit_email.value,
-        college_id: edit_college.value
+        college_id: edit_college_id.value
     };
 
-    fetch(`/api/master/edit/${currentEditId}`, {
+    fetch(`/api/master/edit/${currentID}`, {
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify(data)
     })
     .then(r=>r.json())
     .then(res=>{
-        editMsg.innerHTML = res.message;
-        setTimeout(()=>{
-            closeEdit();
-            loadStudents();
-            loadAdmins();
-        }, 800);
+        alert(res.message);
+        closeModal();
+        loadStudents();
+        loadAdmins();
     });
 }
 
-
-// ---------------- DELETE USER ----------------
+/* ---------------------- DELETE ---------------------- */
 function deleteUser(id){
+    if(!confirm("Delete user?")) return;
+
     fetch(`/api/master/delete/${id}`, {method:"DELETE"})
     .then(r=>r.json())
     .then(res=>{
@@ -277,27 +427,11 @@ function deleteUser(id){
     });
 }
 
+/* ---------------------- INITIAL LOAD ---------------------- */
+loadStudents();
+loadAdmins();
 
-// ---------------- SET GEOFENCE ----------------
-function setGeo(){
-    navigator.geolocation.getCurrentPosition(pos=>{
-        let data = {
-            landmark: landmark.value,
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude
-        };
-
-        fetch("/api/master/set_geofence", {
-            method:"POST",
-            headers:{"Content-Type":"application/json"},
-            body:JSON.stringify(data)
-        })
-        .then(r=>r.json())
-        .then(res=>{
-            geoMsg.innerHTML = res.message;
-        });
-    });
-}
 </script>
 
-{% endblock %}
+</body>
+</html>

@@ -102,4 +102,4 @@ app-debug.apk
 *.mysql
 *.dump
 
-trips/
+trip/
