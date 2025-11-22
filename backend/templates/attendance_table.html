@@ -80,7 +80,6 @@ select {
     border-radius:8px;
     border:1px solid #bbb;
 }
-
 </style>
 
 <h2 class="page-title">Attendance Records</h2>
@@ -93,7 +92,12 @@ select {
         <select id="landmarkFilter" onchange="filterAttendance()">
             <option value="all">All Landmarks</option>
         </select>
+
+        <!-- Download PDF Button -->
         <button class="btn btn-export" onclick="downloadPDF()">Download PDF</button>
+
+        <!-- ✅ NEW BUTTON: Attendance on Map -->
+        <button class="btn btn-export" onclick="openAttendanceMap()">Attendance on Map</button>
     </div>
 </div>
 
@@ -150,6 +154,7 @@ select {
 let attendanceData = { students: [], admins: [] };
 let landmarks = [];
 
+// Load Landmarks
 function loadLandmarks() {
     fetch("/api/master/geofences")
     .then(r => r.json())
@@ -163,6 +168,7 @@ function loadLandmarks() {
     });
 }
 
+// Load Attendance
 function loadAttendance() {
     fetch("/api/master/attendance")
     .then(r => r.json())
@@ -227,6 +233,10 @@ function renderTables(filter) {
     });
 }
 
+// 🎯 OPEN ATTENDANCE MAP PAGE
+function openAttendanceMap() {
+    window.location.href = "/attendance-on-map";  
+}
 
 // ===================== PDF EXPORT =====================
 function downloadPDF() {

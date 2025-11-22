@@ -118,6 +118,18 @@ def master_attendance():
     if error: return error
     return render_template("attendance_table.html", sidebar=SIDEBARS["master"])
 
+@frontend_bp.route("/attendance-on-map")
+def attendance_on_map():
+    token = request.cookies.get("access_token")
+
+    sidebar = None
+    if token:
+        user, valid = JWTHelper.verify_token(token)
+        if valid:
+            sidebar = SIDEBARS.get(user["role"])
+
+    return render_template("attendance_on_map.html", sidebar=sidebar)
+
 
 # ------------------------------ SUPER ADMIN PAGES ------------------------------
 @frontend_bp.route("/superadmin/dashboard")

@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+.map-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.map-box {
+    width: 100%;
+    height: 350px;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.1);
+    position: relative;
+}
+
+.map-title {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(26, 35, 126, 0.85);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 14px;
+    z-index: 10;
+}
+</style>
+
+<h2 style="color:#1a237e;">Attendance on Map</h2>
+
+<div id="mapsContainer" class="map-grid"></div>
+
+<script src="https://apis.mappls.com/advancedmaps/api/cc411a189dd0edd91167de276484ce2d/map_sdk?layer=vector&v=3.0"></script>
+
+<script>
+async function loadAttendanceOnMap() {
+    const fenceRes = await fetch("/api/master/geofences").then(r => r.json());
+    const attRes = await fetch("/api/master/attendance").then(r => r.json());
+
+    const fences = fenceRes.data;
+    const attendance = [...attRes.students, ...attRes.admins];
+
+    const mapsContainer = document.getElementById("mapsContainer");
+    mapsContainer.innerHTML = "";
+
+    fences.forEach((fence, index) => {
+        const boxId = `map_box_${index}`;
+        const mapDiv = document.createElement("div");
+        mapDiv.className = "map-box";
+        mapDiv.id = boxId;
+        mapDiv.innerHTML = `<div class="map-title">${fence.landmark}</div>`;
+        mapsContainer.appendChild(mapDiv);
+
+        const map = new mappls.Map(boxId, {
+            center: { lat: parseFloat(fence.latitude), lng: parseFloat(fence.longitude) },
+            zoom: 15
+        });
+
+        new mappls.Marker({
+            map: map,
+            position: { lat: parseFloat(fence.latitude), lng: parseFloat(fence.longitude) },
+            popupHtml: `<b>${fence.landmark}</b><br>Main Geofence Location`
+        });
+
+        attendance
+            .filter(a => a.landmark === fence.landmark)
+            .forEach(a => {
+                new mappls.Marker({
+                    map: map,
+                    position: { lat: parseFloat(a.marked_lat), lng: parseFloat(a.marked_lng) },
+                    popupHtml: `
+                        <b>${a.name}</b> (${a.role})<br>
+                        Status: ${a.status}<br>
+                        Time: ${a.timestamp}<br>
+                        Distance: ${Math.round(a.distance)} m
+                    `
+                });
+            });
+    });
+}
+
+window.onload = loadAttendanceOnMap;
+</script>
+
+{% endblock %}
