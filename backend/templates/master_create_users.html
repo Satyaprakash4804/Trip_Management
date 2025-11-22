@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+/* Container Style */
+.create-container {
+    max-width: 450px;
+    margin: 60px auto;
+    padding: 25px;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+    animation: fadeSlide 0.6s ease-out;
+}
+
+/* Animation for card */
+@keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.create-title {
+    text-align: center;
+    font-size: 26px;
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: #1a237e;
+}
+
+.input-group {
+    position: relative;
+    margin: 20px 0;
+}
+
+.input-group input,
+.input-group select {
+    width: 100%;
+    padding: 14px 12px;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    background: #fafafa;
+    font-size: 15px;
+    transition: 0.3s;
+}
+
+.input-group input:focus,
+.input-group select:focus {
+    border-color: #1a237e;
+    background: white;
+    box-shadow: 0 0 6px rgba(26,35,126,0.25);
+}
+
+label {
+    position: absolute;
+    top: -12px;
+    left: 12px;
+    background: white;
+    padding: 0px 6px;
+    font-size: 13px;
+    color: #1a237e;
+    font-weight: 500;
+}
+
+/* Button */
+.btn-primary {
+    width: 100%;
+    padding: 14px;
+    background: #1a237e;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 17px;
+    margin-top: 5px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.btn-primary:hover {
+    background: #283593;
+    transform: scale(1.03);
+}
+
+/* Message animation */
+#msg {
+    margin-top: 12px;
+    text-align: center;
+    font-weight: 500;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+</style>
+
+<div class="create-container">
+    <div class="create-title">Create User</div>
+
+    <div class="input-group">
+        <label for="role">Select Role</label>
+        <select id="role">
+            <option value="student">Student</option>
+            <option value="admin">Admin</option>
+            <option value="super_admin">Super Admin</option>
+        </select>
+    </div>
+
+    <div class="input-group">
+        <label for="username">Username</label>
+        <input id="username" placeholder="Enter username">
+    </div>
+
+    <div class="input-group">
+        <label for="password">Password</label>
+        <input id="password" placeholder="Enter password">
+    </div>
+
+    <button class="btn-primary" onclick="createUser()">Create</button>
+
+    <p id="msg"></p>
+</div>
+
+<script>
+function createUser() {
+    let data = {
+        role: document.getElementById("role").value,
+        username: document.getElementById("username").value,
+        password: document.getElementById("password").value
+    };
+
+    fetch("/api/master/create_user", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(data)
+    })
+    .then(r => r.json())
+    .then(d => {
+        let msg = document.getElementById("msg");
+        msg.innerHTML = d.message;
+        msg.style.color = d.success ? "green" : "red";
+        msg.style.opacity = 1;
+
+        // Fade out message
+        setTimeout(() => { msg.style.opacity = 0 }, 2000);
+
+        // Reset form after success
+        if (d.success) {
+            document.getElementById("role").value = "student";
+            document.getElementById("username").value = "";
+            document.getElementById("password").value = "";
+        }
+    });
+}
+</script>
+
+{% endblock %}

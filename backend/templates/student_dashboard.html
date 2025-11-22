@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+    .logout-btn {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: #d32f2f;
+        color: white;
+        padding: 10px 16px;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+    .logout-btn:hover { background:#b71c1c; }
+
+    .card {
+        background:white;
+        padding:20px;
+        border-radius:10px;
+        margin-top:25px;
+        box-shadow:0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    .btn {
+        padding:10px 16px;
+        border:none;
+        border-radius:6px;
+        background:#1a237e;
+        color:white;
+        cursor:pointer;
+        margin-top:10px;
+    }
+
+    .disabled-btn {
+        background: gray !important;
+        cursor: not-allowed;
+    }
+
+    .tick {
+        color: green;
+        font-size: 20px;
+        font-weight: bold;
+    }
+
+    /* Notification card */
+    .notify-card {
+        background:#fff7e6;
+        border-left:6px solid #ff9800;
+        padding:15px;
+        border-radius:10px;
+        margin-top:20px;
+        box-shadow:0 4px 10px rgba(0,0,0,0.1);
+    }
+</style>
+
+<button class="logout-btn" onclick="logoutUser()">Logout</button>
+
+<h2 style="color:#1a237e; margin-top:60px;">Student Dashboard</h2>
+
+<!-- ========= NOTIFICATIONS AREA ========= -->
+<div id="notifyArea" class="notify-card" style="display:none;">
+    <h3 style="margin:0;color:#e65100;">Notifications</h3>
+    <ul id="notifyList"></ul>
+</div>
+
+<!-- ========= MARK ATTENDANCE ========= -->
+<div class="card">
+    <h3>Mark Attendance</h3>
+    <button class="btn disabled-btn" id="markBtn" disabled>Mark Now</button>
+    <p id="attMsg"></p>
+</div>
+
+<!-- ========= PHOTO UPLOAD ========= -->
+<div class="card">
+    <h3>Upload Trip Photo</h3>
+
+    <input type="file" id="photo">
+    <input id="desc" placeholder="Description">
+
+    <button class="btn" onclick="uploadPic()">Upload</button>
+    <p id="uploadMsg"></p>
+</div>
+
+<!-- ========= MY ATTENDANCE ========= -->
+<div class="card">
+    <h3>My Attendance</h3>
+
+    <button class="btn" onclick="loadAttendance()">Load</button>
+
+    <table id="attTable">
+        <thead>
+            <tr>
+                <th>Status</th>
+                <th>Landmark</th>
+                <th>Time</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+
+<script>
+let CURRENT_USER = null;
+
+/* -----------------------
+   LOGOUT
+-------------------------*/
+function logoutUser() {
+    fetch("/api/auth/logout", { method:"GET", credentials:"include"})
+    .then(() => window.location.href = "/login");
+}
+
+/* -----------------------
+   ON PAGE LOAD → CHECK LOGIN + LOAD NOTIFICATIONS
+-------------------------*/
+document.addEventListener("DOMContentLoaded", () => {
+
+    fetch("/api/auth/check", { credentials: "include" })
+    .then(r => r.json())
+    .then(res => {
+
+        if (!res.logged_in) {
+            window.location.href = "/login";
+            return;
+        }
+
+        CURRENT_USER = res.user;
+        checkGeoStatus();
+        loadNotifications();       // NEW: load notifications on dashboard
+    });
+});
+
+/* -----------------------
+   LOAD NOTIFICATIONS
+-------------------------*/
+function loadNotifications() {
+    fetch("/api/student/notifications", { credentials:"include" })
+    .then(r => r.json())
+    .then(res => {
+
+        if (!res.success || res.data.length === 0) {
+            return; // no notifications
+        }
+
+        document.getElementById("notifyArea").style.display = "block";
+
+        let list = document.getElementById("notifyList");
+        list.innerHTML = "";
+
+        res.data.forEach(n => {
+            list.innerHTML += `<li style="margin:6px 0;">${n.message}</li>`;
+        });
+    });
+}
+
+/* -----------------------
+   CHECK IF MASTER ENABLED GEOFENCE
+-------------------------*/
+function checkGeoStatus() {
+
+    fetch("/api/student/geofence_status")
+    .then(r => r.json())
+    .then(res => {
+
+        let btn = document.getElementById("markBtn");
+
+        if (!res.enabled) {
+            btn.disabled = true;
+            btn.classList.add("disabled-btn");
+            btn.innerText = "Attendance Not Available";
+            return;
+        }
+
+        btn.disabled = false;
+        btn.classList.remove("disabled-btn");
+        btn.innerText = "Mark Now";
+
+        btn.onclick = markAttendance;
+    });
+}
+
+/* -----------------------
+   MARK ATTENDANCE
+-------------------------*/
+function markAttendance() {
+
+    navigator.geolocation.getCurrentPosition(pos => {
+
+        const data = {
+            user_id: CURRENT_USER.id,
+            marked_lat: pos.coords.latitude,
+            marked_lng: pos.coords.longitude
+        };
+
+        fetch("/api/student/mark_attendance", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify(data)
+        })
+        .then(r => r.json())
+        .then(d => {
+            let msg = document.getElementById("attMsg");
+            msg.innerHTML = d.message;
+            msg.style.color = d.success ? "green" : "red";
+        });
+
+    }, () => {
+        alert("Location permission denied! Please enable GPS.");
+    });
+}
+
+/* -----------------------
+   PHOTO UPLOAD
+-------------------------*/
+function uploadPic(){
+
+    let fileInput = document.getElementById("photo");
+
+    if (!fileInput.files.length) return alert("Please select a photo!");
+
+    let form = new FormData();
+    form.append("description", document.getElementById("desc").value);
+    form.append("file", fileInput.files[0]);
+
+    fetch("/api/student/upload", {
+        method: "POST",
+        credentials: "include",
+        body: form
+    })
+    .then(r => r.json())
+    .then(d => {
+        let msg = document.getElementById("uploadMsg");
+        msg.innerHTML = d.message;
+        msg.style.color = d.success ? "green" : "red";
+    });
+}
+
+/* -----------------------
+   MY ATTENDANCE LIST
+-------------------------*/
+function loadAttendance() {
+
+    fetch("/api/student/my_attendance", { credentials:"include" })
+    .then(r => r.json())
+    .then(d => {
+
+        let tbody = document.querySelector("#attTable tbody");
+        tbody.innerHTML = "";
+
+        d.data.forEach(x => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${x.status === "present" ? "<span class='tick'>✔</span>" : "Absent"}</td>
+                    <td>${x.landmark || "—"}</td>
+                    <td>${x.timestamp}</td>
+                </tr>
+            `;
+        });
+    });
+}
+</script>
+
+{% endblock %}

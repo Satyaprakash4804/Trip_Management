@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+/* Card */
+.glass-card {
+    background: rgba(255,255,255,0.8);
+    backdrop-filter: blur(10px);
+    padding: 20px;
+    border-radius: 14px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+    margin-top: 20px;
+    animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+    from {opacity: 0; transform: translateY(8px);}
+    to {opacity: 1; transform: translateY(0);}
+}
+
+/* Search Bar */
+.search-box {
+    display: flex;
+    gap: 10px;
+}
+.search-box input {
+    flex: 1;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #bbb;
+}
+
+/* Table */
+.table-container {
+    margin-top: 20px;
+    overflow-x: auto;
+    max-height: 500px;
+    overflow-y: auto;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+th {
+    background: #1a237e;
+    color: white;
+    padding: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+td {
+    background: white;
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+/* Buttons */
+.btn-edit {
+    background: #0277bd;
+    padding: 6px 12px;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+.btn-del {
+    background: #d32f2f;
+    padding: 6px 12px;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+/* Status Chips */
+.verified { background: #4caf50; color: white; padding:4px 8px; border-radius:20px; }
+.pending { background: #ffa000; color:white; padding:4px 8px; border-radius:20px; }
+
+/* Selfie Image */
+.selfie-img {
+    width: 60px;
+    height: 60px;
+    border-radius: 8px;
+    object-fit: cover;
+    border: 1px solid #ccc;
+}
+
+/* MODAL */
+.modal-bg {
+    position: fixed;
+    top:0; left:0;
+    width:100%; height:100%;
+    background: rgba(0,0,0,0.5);
+    display:none;
+    align-items:center;
+    justify-content:center;
+}
+.modal-card {
+    background:white;
+    padding:20px;
+    border-radius:12px;
+    width:90%;
+    max-width:600px;
+}
+.modal-card input {
+    width:100%;
+    padding:10px;
+    margin-bottom:10px;
+    border-radius: 8px;
+    border:1px solid #ccc;
+}
+</style>
+
+<h2 style="color:#1a237e;">Students Details</h2>
+
+<div class="glass-card">
+    <div class="search-box">
+        <input id="search" placeholder="Search by name, mobile or email..." onkeyup="filterTable()">
+    </div>
+
+    <div class="table-container">
+        <table id="studentsTable">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Name</th>
+                    <th>Mobile</th>
+                    <th>Email</th>
+                    <th>College ID</th>
+                    <th>Status</th>
+                    <th>Selfie</th>
+                    <th>Edit</th>
+                    <th>Delete</th>
+                </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div id="modal" class="modal-bg">
+    <div class="modal-card">
+        <h3>Edit Student</h3>
+        <input id="edit_name" placeholder="Name">
+        <input id="edit_mobile" placeholder="Mobile">
+        <input id="edit_email" placeholder="Email">
+        <input id="edit_college_id" placeholder="College ID">
+
+        <button class="btn-edit" onclick="updateStudent()">Save</button>
+        <button class="btn-del" onclick="closeModal()">Cancel</button>
+    </div>
+</div>
+
+<script>
+let selectedID = null;
+
+// LOAD TABLE
+function loadStudents(){
+    fetch("/api/master/students") 
+    .then(r=>r.json())
+    .then(res=>{
+        let tb = document.getElementById("tbody");
+        tb.innerHTML="";
+
+        res.data.forEach(row=>{
+
+            // FIXED SELFIE PATH LOADING
+            let selfie = "-";
+            if (row.selfie) {
+                selfie = `<img src="/${row.selfie}" class="selfie-img" />`;
+            }
+
+            tb.innerHTML += `
+                <tr>
+                    <td>${row.username || "-"}</td>
+                    <td>${row.name || "-"}</td>
+                    <td>${row.mobile || "-"}</td>
+                    <td>${row.email || "-"}</td>
+                    <td>${row.college_id || "-"}</td>
+
+                    <td>${row.is_verified 
+                        ? "<span class='verified'>Verified</span>" 
+                        : "<span class='pending'>Pending</span>"}
+                    </td>
+
+                    <td>${selfie}</td>
+
+                    <td>
+                        <button class="btn-edit" 
+                        onclick="openEdit(${row.id}, '${row.name}', '${row.mobile}', '${row.email}', '${row.college_id}')">
+                            Edit
+                        </button>
+                    </td>
+
+                    <td>
+                        <button class="btn-del" onclick="deleteUser(${row.id})">Delete</button>
+                    </td>
+                </tr>
+            `;
+        });
+    });
+}
+
+loadStudents();
+
+
+// SEARCH FILTER
+function filterTable(){
+    let val = search.value.toLowerCase();
+    let rows = document.querySelectorAll("#studentsTable tbody tr");
+
+    rows.forEach(r=>{
+        r.style.display = r.innerText.toLowerCase().includes(val) ? "" : "none";
+    });
+}
+
+
+// OPEN EDIT MODAL
+function openEdit(id, name, mobile, email, college_id){
+    selectedID = id;
+
+    edit_name.value = name;
+    edit_mobile.value = mobile;
+    edit_email.value = email;
+    edit_college_id.value = college_id;
+
+    modal.style.display = "flex";
+}
+
+function closeModal(){
+    modal.style.display = "none";
+}
+
+
+// UPDATE USER
+function updateStudent(){
+    let data={
+        name: edit_name.value,
+        mobile: edit_mobile.value,
+        email: edit_email.value,
+        college_id: edit_college_id.value
+    };
+
+    fetch(`/api/master/update_user/${selectedID}`, {
+        method:"PUT",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify(data)
+    })
+    .then(r=>r.json())
+    .then(d=>{
+        alert(d.message);
+        closeModal();
+        loadStudents();
+    });
+}
+
+
+// DELETE USER
+function deleteUser(id){
+    if(!confirm("Delete this user?")) return;
+
+    fetch(`/api/master/delete/${id}`, {method:"DELETE"})
+    .then(r=>r.json())
+    .then(res=>{
+        alert(res.message);
+        loadStudents();
+    });
+}
+</script>
+
+{% endblock %}

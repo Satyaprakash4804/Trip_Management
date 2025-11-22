@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+/* =================== Page Styling =================== */
+.page-title {
+    color:#1a237e;
+    font-size: 26px;
+    font-weight: 600;
+    margin-bottom: 15px;
+}
+
+.section-card {
+    background:white;
+    padding:20px;
+    border-radius:14px;
+    box-shadow:0 6px 20px rgba(0,0,0,0.1);
+    margin-top:20px;
+}
+
+.table-box {
+    overflow-x:auto;
+    margin-top:15px;
+    max-height:450px;
+    overflow-y:auto;
+}
+
+table {
+    width:100%;
+    border-collapse:collapse;
+    font-size:14px;
+}
+
+th {
+    background:#1a237e;
+    color:white;
+    padding:12px;
+    position:sticky;
+    top:0;
+    z-index:8;
+}
+
+td {
+    padding:10px;
+    background:white;
+    border-bottom:1px solid #eee;
+}
+
+.present {
+    color:#2e7d32;
+    font-weight:bold;
+}
+
+.absent {
+    color:#c62828;
+    font-weight:bold;
+}
+
+.btn {
+    padding:10px 16px;
+    border:none;
+    background:#1a237e;
+    color:white;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.btn-export {
+    background:#00897b;
+}
+
+/* Filter Dropdown */
+.filter-box {
+    margin-bottom: 12px;
+}
+
+select {
+    width: 250px;
+    padding:10px;
+    border-radius:8px;
+    border:1px solid #bbb;
+}
+
+</style>
+
+<h2 class="page-title">Attendance Records</h2>
+
+<!-- FILTER SECTION -->
+<div class="section-card">
+    <h3 style="color:#1a237e;">Filter by Landmark</h3>
+
+    <div class="filter-box">
+        <select id="landmarkFilter" onchange="filterAttendance()">
+            <option value="all">All Landmarks</option>
+        </select>
+        <button class="btn btn-export" onclick="downloadPDF()">Download PDF</button>
+    </div>
+</div>
+
+<!-- STUDENT ATTENDANCE -->
+<div class="section-card">
+    <h3 style="color:#1a237e;">Students Attendance</h3>
+
+    <div class="table-box">
+        <table id="studentAtt">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Status</th>
+                    <th>Landmark</th>
+                    <th>Latitude</th>
+                    <th>Longitude</th>
+                    <th>Distance</th>
+                    <th>Date</th>
+                    <th>Time</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ADMIN ATTENDANCE -->
+<div class="section-card">
+    <h3 style="color:#1a237e;">Admins Attendance</h3>
+
+    <div class="table-box">
+        <table id="adminAtt">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Status</th>
+                    <th>Landmark</th>
+                    <th>Latitude</th>
+                    <th>Longitude</th>
+                    <th>Distance</th>
+                    <th>Date</th>
+                    <th>Time</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script>
+let attendanceData = { students: [], admins: [] };
+let landmarks = [];
+
+function loadLandmarks() {
+    fetch("/api/master/geofences")
+    .then(r => r.json())
+    .then(res => {
+        let select = document.getElementById("landmarkFilter");
+
+        res.data.forEach(g => {
+            landmarks.push(g.landmark);
+            select.innerHTML += `<option value="${g.landmark}">${g.landmark}</option>`;
+        });
+    });
+}
+
+function loadAttendance() {
+    fetch("/api/master/attendance")
+    .then(r => r.json())
+    .then(d => {
+        attendanceData = d;
+        renderTables("all");
+    });
+}
+
+function filterAttendance() {
+    let filter = document.getElementById("landmarkFilter").value;
+    renderTables(filter);
+}
+
+function renderTables(filter) {
+    let st = document.querySelector("#studentAtt tbody");
+    let ad = document.querySelector("#adminAtt tbody");
+
+    st.innerHTML = "";
+    ad.innerHTML = "";
+
+    (attendanceData.admins || []).forEach(x => {
+
+        if(filter !== "all" && x.landmark !== filter) return;
+
+        let dt = x.timestamp.split(" ");
+        let date = dt[0];
+        let time = dt[1];
+
+        st.innerHTML += `
+            <tr>
+                <td>${x.name}</td>
+                <td class="${x.status === 'present' ? 'present':'absent'}">${x.status}</td>
+                <td>${x.landmark}</td>
+                <td>${x.marked_lat}</td>
+                <td>${x.marked_lng}</td>
+                <td>${Math.round(x.distance)} m</td>
+                <td>${date}</td>
+                <td>${time}</td>
+            </tr>
+        `;
+    });
+
+    attendanceData.admins.forEach(x => {
+        if(filter !== "all" && x.landmark !== filter) return;
+
+        let dt = x.timestamp.split(" ");
+        let date = dt[0];
+        let time = dt[1];
+
+        ad.innerHTML += `
+            <tr>
+                <td>${x.name}</td>
+                <td class="${x.status === 'present' ? 'present':'absent'}">${x.status}</td>
+                <td>${x.landmark}</td>
+                <td>${x.marked_lat}</td>
+                <td>${x.marked_lng}</td>
+                <td>${Math.round(x.distance)} m</td>
+                <td>${date}</td>
+                <td>${time}</td>
+            </tr>
+        `;
+    });
+}
+
+
+// ===================== PDF EXPORT =====================
+function downloadPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: "landscape" });
+
+    let filter = document.getElementById("landmarkFilter").value;
+
+    doc.setFontSize(20);
+    doc.text("Attendance Report", 14, 15);
+
+    doc.setFontSize(12);
+    doc.text("Landmark Filter: " + filter, 14, 25);
+
+    let y = 40;
+
+    ["students", "admins"].forEach((type, index) => {
+        doc.setFontSize(14);
+        doc.text((type === "students" ? "Students" : "Admins") + " Attendance", 14, y);
+        y += 8;
+
+        doc.setFontSize(10);
+        doc.text("Name | Status | Landmark | Lat | Lng | Distance | Date | Time", 14, y);
+        y += 6;
+
+        attendanceData[type].forEach(x => {
+            if(filter !== "all" && x.landmark !== filter) return;
+
+            let dt = x.timestamp.split(" ");
+            doc.text(
+                `${x.name} | ${x.status} | ${x.landmark} | ${x.marked_lat} | ${x.marked_lng} | ${Math.round(x.distance)}m | ${dt[0]} | ${dt[1]}`,
+                14, y
+            );
+            y += 6;
+        });
+
+        y += 10;
+    });
+
+    doc.save("attendance_report.pdf");
+}
+
+// Initialize
+loadLandmarks();
+loadAttendance();
+
+</script>
+
+{% endblock %}
