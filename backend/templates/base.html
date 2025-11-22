@@ -6,98 +6,121 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <style>
+
+        /* GLOBAL */
         body {
-            margin:0;
+            margin: 0;
             font-family: "Poppins", sans-serif;
-            background:#f3f4f6;
+            background:#f5f7fb;
         }
 
-        /* ---------------- SIDEBAR ---------------- */
+        /* SIDEBAR */
         .sidebar {
             position: fixed;
             top: 0;
             left: 0;
-            width: 250px;
+            width: 260px;
             height: 100vh;
-            background: #1a237e;
-            padding-top: 60px;
-            transform: translateX(0);
+            background: linear-gradient(180deg, #1a237e, #141a42);
+            padding-top: 80px;
+            box-shadow: 3px 0 25px rgba(0,0,0,0.25);
             transition: 0.35s ease;
-            color:white;
             z-index: 1001;
-            overflow-y:auto;
+            color: white;
+            overflow-y: auto;
         }
 
         .sidebar a {
             display: block;
-            padding: 14px 20px;
-            color: white;
+            padding: 14px 25px;
+            color: #ffffffd9;
             text-decoration: none;
             font-size: 16px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            transition: 0.25s ease;
+            font-weight: 500;
+            border-left: 4px solid transparent;
         }
 
         .sidebar a:hover {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.13);
+            padding-left: 32px;
+            border-left: 4px solid #00e5ff;
         }
 
-        /* --- mobile hidden --- */
+        /* LOGOUT */
+        .sidebar-logout {
+            margin: 30px 25px;
+            padding: 14px;
+            background: #ff3b30;
+            color: white;
+            cursor: pointer;
+            font-size: 17px;
+            font-weight: 600;
+            border-radius: 8px;
+            text-align: center;
+            transition: 0.25s ease;
+            box-shadow: 0 4px 12px rgba(255,0,0,0.3);
+        }
+
+        .sidebar-logout:hover {
+            background: #d62821;
+            transform: translateY(-3px);
+        }
+
+        /* MOBILE */
         @media(max-width: 900px) {
             .sidebar {
-                transform: translateX(-260px);
+                transform: translateX(-270px);
             }
             .sidebar.show {
                 transform: translateX(0);
             }
         }
 
-        /* ---------------- OVERLAY (for mobile) ---------------- */
+        /* OVERLAY */
         #overlay {
             position: fixed;
-            top:0;
-            left:0;
-            width:100%;
-            height:100%;
-            background: rgba(0,0,0,0.4);
+            top:0; left:0;
+            width:100%; height:100%;
+            background: rgba(0,0,0,0.45);
             display:none;
             z-index: 1000;
-            transition: 0.3s;
         }
 
         #overlay.active {
             display:block;
         }
 
-        /* ---------------- CONTENT AREA ---------------- */
+        /* CONTENT */
         .content {
-            margin-left: 250px;
-            padding: 25px;
-            transition: 0.35s ease;
+            margin-left: 260px;
+            padding: 30px 35px;
+            transition: 0.4s ease;
         }
 
-        /* Content full-width on mobile */
         @media(max-width: 900px) {
             .content {
                 margin-left: 0;
             }
         }
 
-        /* ---------------- HAMBURGER ---------------- */
+        /* HAMBURGER */
         .hamburger {
             position: fixed;
             top: 15px;
-            left: 15px;
+            left: 18px;
             background: #1a237e;
             color: white;
-            width: 40px;
-            height: 40px;
-            border-radius: 6px;
+            width: 45px;
+            height: 45px;
+            border-radius: 10px;
             display: flex;
             align-items:center;
             justify-content:center;
             font-size: 22px;
             cursor:pointer;
             z-index: 1100;
+            box-shadow:0 4px 15px rgba(0,0,0,0.25);
         }
 
     </style>
@@ -105,47 +128,58 @@
 
 <body>
 
-<!-- MOBILE OVERLAY -->
 <div id="overlay" onclick="closeSidebar()"></div>
 
-<!-- HAMBURGER -->
 <div class="hamburger" onclick="toggleSidebar()">☰</div>
 
-<!-- SIDEBAR -->
 {% if sidebar %}
 <div id="sidebar" class="sidebar">
+
     {% for item in sidebar %}
-    <a href="{{ item.href }}" onclick="closeSidebar()">{{ item.text }}</a>
+
+        {# ------------------ REMOVE NOTIFICATION BUTTON FOR ALL USERS ------------------ #}
+        {% if 'notification' in item.href.lower() or 'notify' in item.href.lower() %}
+            {# skip notification button entirely #}
+
+        {% else %}
+            <a href="{{ item.href }}" onclick="closeSidebar()">{{ item.text }}</a>
+        {% endif %}
+
     {% endfor %}
+
+    <!-- LOGOUT BUTTON -->
+    <div class="sidebar-logout" onclick="logoutSidebar()">
+        Logout
+    </div>
+
 </div>
 {% endif %}
 
-<!-- PAGE CONTENT -->
 <div id="content" class="content">
     {% block content %}{% endblock %}
 </div>
 
-
 <script>
 function toggleSidebar() {
-    let sidebar = document.getElementById("sidebar");
-    let overlay = document.getElementById("overlay");
-
-    sidebar.classList.toggle("show");
-    overlay.classList.toggle("active");
+    document.getElementById("sidebar").classList.toggle("show");
+    document.getElementById("overlay").classList.toggle("active");
 }
 
 function closeSidebar() {
-    let sidebar = document.getElementById("sidebar");
-    let overlay = document.getElementById("overlay");
-
-    sidebar.classList.remove("show");
-    overlay.classList.remove("active");
+    document.getElementById("sidebar").classList.remove("show");
+    document.getElementById("overlay").classList.remove("active");
 }
 
-// AUTO-CLOSE on navigation (desktop & mobile)
+function logoutSidebar() {
+    fetch("/api/auth/logout")
+        .then(() => {
+            localStorage.removeItem("user");
+            window.location.href = "/login";
+        });
+}
+
 document.querySelectorAll(".sidebar a").forEach(link => {
-    link.addEventListener("click", () => closeSidebar());
+    link.addEventListener("click", closeSidebar);
 });
 </script>
 

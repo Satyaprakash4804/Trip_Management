@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>My Uploaded Photos</h2>
+
+<div id="uploadsBox"></div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    fetch("/api/student/my_uploads", { credentials:"include" })
+    .then(r => r.json())
+    .then(d => {
+        let box = document.getElementById("uploadsBox");
+        box.innerHTML = "";
+
+        d.data.forEach(x => {
+            box.innerHTML += `
+                <div style="background:white;padding:10px;margin-top:12px;border-radius:6px;">
+                    <img src="/${x.file_path}" style="width:100%;border-radius:6px;">
+                    <p>${x.description}</p>
+                    <small>${x.timestamp}</small>
+                </div>
+            `;
+        });
+    });
+});
+</script>
+
+{% endblock %}

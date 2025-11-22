@@ -1,46 +1,108 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h2 style="color:#1a237e;">Admin Dashboard</h2>
-
 <style>
-    .card-box{
-        background:white;
-        padding:20px;
-        border-radius:10px;
-        margin-top:25px;
-        box-shadow:0 4px 10px rgba(0,0,0,0.1);
-    }
+/* ---------- PAGE TITLE ---------- */
+.page-title {
+    font-size: 28px;
+    font-weight: 600;
+    color: #1a237e;
+    margin-bottom: 25px;
+}
 
-    .btn {
-        padding:10px 16px;
-        border:none;
-        border-radius:6px;
-        background:#1a237e;
-        color:white;
-        cursor:pointer;
-        margin-top:10px;
-    }
+/* ---------- CARD ---------- */
+.card-box {
+    background: white;
+    padding: 22px;
+    border-radius: 14px;
+    margin-top: 25px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    transition: 0.25s;
+}
+.card-box:hover {
+    transform: translateY(-3px);
+}
 
-    .disabled-btn {
-        background: gray !important;
-        cursor: not-allowed;
-    }
+/* ---------- BUTTONS ---------- */
+.btn {
+    padding: 10px 18px;
+    border: none;
+    border-radius: 8px;
+    background: #1a237e;
+    color: white;
+    cursor: pointer;
+    margin-top: 10px;
+    font-size: 15px;
+    transition: 0.25s;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+}
+.btn:hover {
+    background: #0f184c;
+}
 
-    .logout-btn {
-        position: fixed;
-        top: 20px; right: 20px;
-        background:#d32f2f;
-        color:white;
-        padding:10px 16px;
-        border-radius:6px;
-        border:none;
-        cursor:pointer;
-        z-index:1000;
-    }
+.disabled-btn {
+    background: #a9a9a9 !important;
+    cursor: not-allowed !important;
+}
+
+/* ---------- INPUTS ---------- */
+input[type="file"], input[type="text"], input[type="number"], input[type="email"] {
+    width: 100%;
+    margin-top: 10px;
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+}
+
+/* ---------- TABLE ---------- */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+th {
+    background: #1a237e;
+    color: white;
+    padding: 12px;
+    text-align: left;
+}
+td {
+    padding: 10px;
+    background: #fafafa;
+    border-bottom: 1px solid #eee;
+}
+tr:hover td {
+    background: #eef1ff;
+}
+.status-present { color: green; font-weight: 600; }
+.status-absent { color: red; font-weight: 600; }
 </style>
 
-<button class="logout-btn" onclick="logoutUser()">Logout</button>
+<h2 class="page-title">Admin Dashboard</h2>
+
+<!-- NOTIFICATIONS CARD -->
+<div class="card-box">
+    <h3>Notifications</h3>
+    <p style="color:#555;">View and send important updates.</p>
+    <button class="btn" onclick="window.location='/notifications'">Open Notifications</button>
+</div>
+<!-- ========= NOTIFICATIONS ========== -->
+<div class="card">
+    <h3>Notifications</h3>
+
+    <table class="table" id="notifyTable">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Message</th>
+                <th>From</th>
+                <th>Time</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
 
 <!-- MARK ATTENDANCE -->
 <div class="card-box">
@@ -52,18 +114,16 @@
 <!-- UPLOAD PHOTO -->
 <div class="card-box">
     <h3>Upload Trip Photo</h3>
-
     <input type="file" id="photo">
-    <input id="desc" placeholder="Description">
-
+    <input id="desc" placeholder="Enter short description...">
     <button class="btn" onclick="uploadPic()">Upload</button>
     <p id="uploadMsg"></p>
 </div>
 
 <!-- STUDENTS TABLE -->
 <div class="card-box">
-    <h3>Students</h3>
-    <button class="btn" onclick="loadStudents()">Load</button>
+    <h3>Students List</h3>
+    <button class="btn" onclick="loadStudents()">Load Students</button>
 
     <table id="studentsTable">
         <thead>
@@ -76,7 +136,7 @@
 <!-- ATTENDANCE -->
 <div class="card-box">
     <h3>Attendance Records</h3>
-    <button class="btn" onclick="loadAttendance()">Load</button>
+    <button class="btn" onclick="loadAttendance()">Load Attendance</button>
 
     <table id="attTable">
         <thead>
@@ -87,28 +147,19 @@
 </div>
 
 <script>
-
 let CURRENT_ADMIN = null;
 
-/* ------------------------- CHECK LOGIN ------------------------- */
 document.addEventListener("DOMContentLoaded", () => {
     fetch("/api/auth/check", { credentials: "include" })
     .then(r => r.json())
     .then(res => {
-        if (!res.logged_in) {
-            window.location.href = "/login";
-            return;
-        }
+        if (!res.logged_in) return window.location.href = "/login";
 
         CURRENT_ADMIN = res.user;
-        console.log("LOGGED-IN ADMIN:", CURRENT_ADMIN);
-
         enableMarkAttendance();
     });
 });
 
-
-/* ------------------------- ENABLE MARK BUTTON ------------------------- */
 function enableMarkAttendance() {
     fetch("/api/admin/check_attendance_status")
     .then(r => r.json())
@@ -129,21 +180,10 @@ function enableMarkAttendance() {
     });
 }
 
-
-/* ------------------------- LOGOUT ------------------------- */
-function logoutUser() {
-    fetch("/api/auth/logout")
-        .then(() => window.location.href = "/login");
-}
-
-
-/* ------------------------- MARK ATTENDANCE ------------------------- */
 function markAttendance() {
-
     navigator.geolocation.getCurrentPosition(pos => {
-
         let data = {
-            user_id: CURRENT_ADMIN.id,   // ⬅ NO localStorage
+            user_id: CURRENT_ADMIN.id,
             role: CURRENT_ADMIN.role,
             marked_lat: pos.coords.latitude,
             marked_lng: pos.coords.longitude,
@@ -158,15 +198,14 @@ function markAttendance() {
         })
         .then(r => r.json())
         .then(d => {
-            document.getElementById("attMsg").innerHTML = d.message;
+            let msg = document.getElementById("attMsg");
+            msg.innerHTML = d.message;
+            msg.style.color = d.success ? "green" : "red";
             enableMarkAttendance();
         });
-
     });
 }
 
-
-/* ------------------------- UPLOAD PIC ------------------------- */
 function uploadPic() {
     let fd = new FormData();
     fd.append("user_id", CURRENT_ADMIN.id);
@@ -176,30 +215,29 @@ function uploadPic() {
     fetch("/api/admin/upload", { method:"POST", body:fd })
     .then(r => r.json())
     .then(d => {
-        document.getElementById("uploadMsg").innerHTML = d.message;
+        let msg = document.getElementById("uploadMsg");
+        msg.innerHTML = d.message;
+        msg.style.color = d.success ? "green" : "red";
     });
 }
 
-
-/* ------------------------- LOAD STUDENTS ------------------------- */
 function loadStudents() {
     fetch("/api/admin/students")
     .then(r => r.json())
     .then(d => {
         let tbody = document.querySelector("#studentsTable tbody");
         tbody.innerHTML = "";
-
         d.data.forEach(x => {
             tbody.innerHTML += `
                 <tr>
-                    <td>${x.name}</td><td>${x.mobile}</td><td>${x.email}</td>
+                    <td>${x.name}</td>
+                    <td>${x.mobile}</td>
+                    <td>${x.email}</td>
                 </tr>`;
         });
     });
 }
 
-
-/* ------------------------- LOAD ATTENDANCE ------------------------- */
 function loadAttendance() {
     fetch("/api/admin/attendance")
     .then(r => r.json())
@@ -207,22 +245,44 @@ function loadAttendance() {
         let tbody = document.querySelector("#attTable tbody");
         tbody.innerHTML = "";
 
-        // Admin entries
         d.admins.forEach(x => {
             tbody.innerHTML += `
-                <tr style="background:#e3f2fd;">
-                    <td>${x.name}</td><td>Admin</td>
-                    <td>${x.status}</td><td>${x.timestamp}</td>
+                <tr>
+                    <td>${x.name}</td>
+                    <td>Admin</td>
+                    <td class="${x.status === 'present' ? 'status-present' : 'status-absent'}">${x.status}</td>
+                    <td>${x.timestamp}</td>
                 </tr>`;
         });
 
-        // Students
         d.students.forEach(x => {
             tbody.innerHTML += `
                 <tr>
-                    <td>${x.name}</td><td>Student</td>
-                    <td>${x.status}</td><td>${x.timestamp}</td>
+                    <td>${x.name}</td>
+                    <td>Student</td>
+                    <td class="${x.status === 'present' ? 'status-present' : 'status-absent'}">${x.status}</td>
+                    <td>${x.timestamp}</td>
                 </tr>`;
+        });
+    });
+}
+/* ----------------------- LOAD NOTIFICATIONS ----------------------- */
+function loadNotifications() {
+    fetch("/api/notifications/list", { credentials:"include" })
+    .then(r=>r.json())
+    .then(d=>{
+        let tbody = document.querySelector("#notifyTable tbody");
+        tbody.innerHTML = "";
+
+        d.data.forEach(n=>{
+            tbody.innerHTML += `
+                <tr>
+                    <td><b>${n.title}</b></td>
+                    <td class="notice-msg">${n.message}</td>
+                    <td>${n.sender_name}</td>
+                    <td>${n.timestamp}</td>
+                </tr>
+            `;
         });
     });
 }

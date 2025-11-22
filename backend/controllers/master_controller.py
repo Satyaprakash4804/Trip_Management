@@ -79,7 +79,7 @@ class MasterController:
             return {"success": False, "message": str(e)}
 
     # ---------------------------------------------------------
-    # EDIT USER
+    # EDIT USER (Master only)
     # ---------------------------------------------------------
     @staticmethod
     def edit_user(user_id, data):
@@ -103,7 +103,7 @@ class MasterController:
             return {"success": False, "message": str(e)}
 
     # ---------------------------------------------------------
-    # GEOFENCE HISTORY
+    # ALL GEOFENCES + attendance count
     # ---------------------------------------------------------
     @staticmethod
     def get_geofence_history():
@@ -139,7 +139,7 @@ class MasterController:
             return {"success": False, "data": []}
 
     # ---------------------------------------------------------
-    # ATTENDANCE
+    # ATTENDANCE (Admin + Student)
     # ---------------------------------------------------------
     @staticmethod
     def get_attendance():

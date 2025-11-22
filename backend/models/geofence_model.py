@@ -1,35 +1,35 @@
 from db import get_db_connection
-from datetime import datetime, timedelta
+from datetime import timedelta
+from utils.time_helper import now_ist
+import pytz
+from datetime import datetime
 
 
 class GeofenceModel:
 
     # ---------------------------------------------------------
-    # CREATE GEOFENCE
+    # CREATE GEOFENCE (IST TIMESTAMP)
     # ---------------------------------------------------------
     @staticmethod
     def create_geofence(data):
-        """
-        Expected data:
-         - landmark (str)
-         - latitude (float)
-         - longitude (float)
-         - radius (int)
-         - valid_minutes (int)
-        """
         conn = get_db_connection()
         cursor = conn.cursor()
 
+        ist = pytz.timezone("Asia/Kolkata")
+
+        # created_at in IST
+        created_at = datetime.now(ist)
+
         valid_minutes = int(data.get("valid_minutes", 0))
 
-        # Compute expiry time (or NULL if unlimited)
+        # expiry time (IST)
         expires_at = None
         if valid_minutes > 0:
-            expires_at = datetime.now() + timedelta(minutes=valid_minutes)
+            expires_at = created_at + timedelta(minutes=valid_minutes)
 
         query = """
-            INSERT INTO geofence (landmark, latitude, longitude, radius, expires_at)
-            VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO geofence (landmark, latitude, longitude, radius, expires_at, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s)
         """
 
         cursor.execute(query, (
@@ -37,112 +37,106 @@ class GeofenceModel:
             float(data.get("latitude")),
             float(data.get("longitude")),
             int(data.get("radius", 200)),
-            expires_at
+            expires_at.strftime("%Y-%m-%d %H:%M:%S") if expires_at else None,
+            created_at.strftime("%Y-%m-%d %H:%M:%S")
         ))
 
+        conn.commit()
         geofence_id = cursor.lastrowid
 
-        conn.commit()
         cursor.close()
         conn.close()
-
         return geofence_id
 
     # ---------------------------------------------------------
-    # ALL GEOFENCES + ATTENDANCE COUNT
+    # ALL GEOFENCES WITH ATTENDANCE COUNT (IST FORMAT)
     # ---------------------------------------------------------
     @staticmethod
     def get_all_geofences_with_count():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        query = """
+        cursor.execute("""
             SELECT 
                 g.*,
-                IFNULL((SELECT COUNT(*) FROM attendance a 
-                        WHERE a.geofence_id = g.id), 0) AS attendance_count
+                IFNULL((SELECT COUNT(*) FROM attendance a WHERE a.geofence_id = g.id), 0)
+                AS attendance_count
             FROM geofence g
             ORDER BY g.created_at DESC
-        """
+        """)
 
-        cursor.execute(query)
         rows = cursor.fetchall()
-
         cursor.close()
         conn.close()
 
-        # Convert datetime → ISO string
+        # Convert timestamp to IST formatted string
         for r in rows:
             if isinstance(r.get("created_at"), datetime):
-                r["created_at"] = r["created_at"].isoformat()
+                r["created_at"] = r["created_at"].strftime("%Y-%m-%d %H:%M:%S")
 
             if isinstance(r.get("expires_at"), datetime):
-                r["expires_at"] = r["expires_at"].isoformat()
+                r["expires_at"] = r["expires_at"].strftime("%Y-%m-%d %H:%M:%S")
             else:
                 r["expires_at"] = None
 
         return rows
 
     # ---------------------------------------------------------
-    # ACTIVE (NOT EXPIRED) GEOFENCE
+    # ACTIVE GEOFENCE (IST)
     # ---------------------------------------------------------
     @staticmethod
     def get_active_geofence():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        query = """
+        cursor.execute("""
             SELECT 
                 g.*,
-                IFNULL((SELECT COUNT(*) FROM attendance a 
-                        WHERE a.geofence_id = g.id), 0) AS attendance_count
+                IFNULL((SELECT COUNT(*) FROM attendance a WHERE a.geofence_id = g.id), 0)
+                AS attendance_count
             FROM geofence g
             WHERE (g.expires_at IS NULL OR g.expires_at > NOW())
             ORDER BY g.created_at DESC
             LIMIT 1
-        """
+        """)
 
-        cursor.execute(query)
         row = cursor.fetchone()
-
         cursor.close()
         conn.close()
 
         if not row:
             return None
 
+        # Convert timestamps to IST format
         if isinstance(row.get("created_at"), datetime):
-            row["created_at"] = row["created_at"].isoformat()
+            row["created_at"] = row["created_at"].strftime("%Y-%m-%d %H:%M:%S")
 
         if isinstance(row.get("expires_at"), datetime):
-            row["expires_at"] = row["expires_at"].isoformat()
+            row["expires_at"] = row["expires_at"].strftime("%Y-%m-%d %H:%M:%S")
         else:
             row["expires_at"] = None
 
         return row
 
     # ---------------------------------------------------------
-    # LATEST GEOFENCE (EVEN IF EXPIRED)
-    # REQUIRED FOR ATTENDANCE MARKING
+    # LATEST GEOFENCE (IST)
     # ---------------------------------------------------------
     @staticmethod
     def get_latest_geofence():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        query = """
+        cursor.execute("""
             SELECT 
                 g.*,
-                IFNULL((SELECT COUNT(*) FROM attendance a 
-                        WHERE a.geofence_id = g.id), 0) AS attendance_count
+                IFNULL((SELECT COUNT(*) FROM attendance a WHERE a.geofence_id = g.id), 0)
+                AS attendance_count
             FROM geofence g
             ORDER BY g.created_at DESC
             LIMIT 1
-        """
+        """)
 
-        cursor.execute(query)
         row = cursor.fetchone()
-
         cursor.close()
         conn.close()
 
@@ -150,10 +144,10 @@ class GeofenceModel:
             return None
 
         if isinstance(row.get("created_at"), datetime):
-            row["created_at"] = row["created_at"].isoformat()
+            row["created_at"] = row["created_at"].strftime("%Y-%m-%d %H:%M:%S")
 
         if isinstance(row.get("expires_at"), datetime):
-            row["expires_at"] = row["expires_at"].isoformat()
+            row["expires_at"] = row["expires_at"].strftime("%Y-%m-%d %H:%M:%S")
         else:
             row["expires_at"] = None
 

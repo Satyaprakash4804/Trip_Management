@@ -1,34 +1,118 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h2 style="color:#1a237e;">Notifications</h2>
-
 <style>
-    .box {
-        background: white;
-        padding: 20px;
-        margin-top: 20px;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
 
-    select, input, textarea {
-        width: 100%;
-        padding: 10px;
-        margin-top: 10px;
-        border-radius: 6px;
-        border: 1px solid #ccc;
-    }
+/* ---------- PAGE TITLE ---------- */
+.page-title {
+    font-size: 30px;
+    font-weight: 600;
+    color: #1a237e;
+    margin-bottom: 25px;
+}
+
+/* ---------- BOX / CARD ---------- */
+.box {
+    background: white;
+    padding: 22px;
+    border-radius: 14px;
+    margin-top: 25px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    transition: 0.25s;
+}
+
+.box:hover {
+    transform: translateY(-3px);
+}
+
+/* ---------- INPUTS ---------- */
+input, textarea, select {
+    width: 100%;
+    padding: 12px 14px;
+    margin-top: 12px;
+    border-radius: 10px;
+    border: 1px solid #c8c8c8;
+    background: #fafafa;
+    font-size: 15px;
+    transition: 0.25s;
+}
+
+input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: #1a237e;
+    background: white;
+}
+
+/* ---------- BUTTON ---------- */
+.btn {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 10px;
+    background: #1a237e;
+    color: white;
+    cursor: pointer;
+    margin-top: 15px;
+    font-size: 15px;
+    font-weight: 500;
+    transition: 0.25s;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.15);
+}
+
+.btn:hover {
+    background: #0f184c;
+    transform: scale(1.03);
+}
+
+/* ---------- TABLE ---------- */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+th {
+    background: #1a237e;
+    color: white;
+    padding: 14px 10px;
+    text-align: left;
+    font-size: 15px;
+}
+
+td {
+    padding: 12px 10px;
+    background: #ffffff;
+    border-bottom: 1px solid #e4e4e4;
+    font-size: 14px;
+    color: #333;
+}
+
+tr:hover td {
+    background: #eef1ff;
+}
+
+/* ---------- Highlight sender & message ---------- */
+td.message-cell {
+    font-weight: 500;
+    color: #1a237e;
+}
+
+td.sender-cell {
+    font-weight: 600;
+    color: #0d47a1;
+}
+
 </style>
+
+<h2 class="page-title">Notifications</h2>
 
 <!-- SEND NOTIFICATION -->
 <div class="box">
-    <h3>Send Notification</h3>
+    <h3 style="margin-bottom: 15px;">Send Notification</h3>
 
-    <input id="title" placeholder="Title">
-    <textarea id="message" placeholder="Message"></textarea>
+    <input id="title" placeholder="Title (e.g., Important Update)">
+    <textarea id="message" rows="3" placeholder="Write your message here..."></textarea>
 
-    <label>Send To:</label>
+    <label style="margin-top:10px;">Send To:</label>
     <select id="send_to">
         <option value="all">All</option>
         <option value="student">Students</option>
@@ -36,23 +120,22 @@
         <option value="super_admin">Super Admins</option>
     </select>
 
-    <button class="btn" onclick="sendNotification()">Send</button>
-
-    <p id="sendMsg"></p>
+    <button class="btn" onclick="sendNotification()">Send Notification</button>
+    <p id="sendMsg" style="margin-top:10px;"></p>
 </div>
 
 <!-- NOTIFICATION LIST -->
 <div class="box">
-    <h3>All Notifications</h3>
+    <h3 style="margin-bottom: 15px;">All Notifications</h3>
 
     <table id="notifyTable">
         <thead>
             <tr>
-                <th>Title</th>
-                <th>Message</th>
-                <th>Sent To</th>
-                <th>Sender</th>
-                <th>Time</th>
+                <th width="15%">Title</th>
+                <th width="35%">Message</th>
+                <th width="15%">Sent To</th>
+                <th width="15%">Sender</th>
+                <th width="20%">Time</th>
             </tr>
         </thead>
         <tbody></tbody>
@@ -60,19 +143,42 @@
 </div>
 
 <script>
+
+let CURRENT_USER = null;
+
+/* ---------------- FETCH LOGGED-IN USER ---------------- */
+document.addEventListener("DOMContentLoaded", () => {
+    fetch("/api/auth/check", { credentials: "include" })
+    .then(r => r.json())
+    .then(res => {
+        if (!res.logged_in) {
+            window.location.href = "/login";
+            return;
+        }
+        CURRENT_USER = res.user;
+        loadNotifications();
+    });
+});
+
+/* ---------------- SEND NOTIFICATION ---------------- */
 function sendNotification() {
-    let user = JSON.parse(localStorage.getItem("user"));
+
+    if (!CURRENT_USER) {
+        alert("User not loaded yet!");
+        return;
+    }
 
     let data = {
         title: document.getElementById("title").value,
         message: document.getElementById("message").value,
         send_to: document.getElementById("send_to").value,
-        sender_id: user.id
+        sender_id: CURRENT_USER.id
     };
 
     fetch("/api/notifications/send", {
         method:"POST",
         headers:{"Content-Type":"application/json"},
+        credentials: "include",
         body:JSON.stringify(data)
     })
     .then(r=>r.json())
@@ -83,8 +189,9 @@ function sendNotification() {
     });
 }
 
+/* ---------------- LOAD NOTIFICATIONS ---------------- */
 function loadNotifications() {
-    fetch("/api/notifications/list")
+    fetch("/api/notifications/list", { credentials: "include" })
     .then(r=>r.json())
     .then(d=>{
         let tbody = document.querySelector("#notifyTable tbody");
@@ -93,10 +200,10 @@ function loadNotifications() {
         d.data.forEach(n=>{
             tbody.innerHTML += `
                 <tr>
-                    <td>${n.title}</td>
-                    <td>${n.message}</td>
+                    <td><b>${n.title}</b></td>
+                    <td class="message-cell">${n.message}</td>
                     <td>${n.send_to}</td>
-                    <td>${n.sender_name}</td>
+                    <td class="sender-cell">${n.sender_name}</td>
                     <td>${n.timestamp}</td>
                 </tr>
             `;
@@ -104,7 +211,6 @@ function loadNotifications() {
     });
 }
 
-loadNotifications();
 </script>
 
 {% endblock %}

@@ -185,7 +185,7 @@ def seed_default_users():
             "MASTER001",
             "master",
             "master",
-            "master123",
+            "Venus@1978@#%",
             1
         ))
         conn.commit()
@@ -203,8 +203,8 @@ def seed_default_users():
             "director@venus.com",
             "DIRECTOR001",
             "super_admin",
-            "director",
-            "director123",
+            "Director",
+            "Director@aaft",
             1
         ))
         conn.commit()

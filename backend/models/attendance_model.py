@@ -1,7 +1,24 @@
 from db import get_db_connection
+from utils.time_helper import now_ist
+import pytz
 
 
 class AttendanceModel:
+
+    # ---------------------------------------------------------
+    # HELPER → Convert UTC → IST safely
+    # ---------------------------------------------------------
+    @staticmethod
+    def to_ist(ts):
+        if ts is None:
+            return None
+        try:
+            utc = pytz.utc.localize(ts)
+        except Exception:
+            return str(ts)
+
+        ist = utc.astimezone(pytz.timezone("Asia/Kolkata"))
+        return ist.strftime("%Y-%m-%d %H:%M:%S")
 
     # ---------------------------------------------------------
     # INSERT ATTENDANCE
@@ -11,10 +28,12 @@ class AttendanceModel:
         conn = get_db_connection()
         cursor = conn.cursor()
 
+        timestamp = now_ist()  # IST timestamp
+
         query = """
             INSERT INTO attendance 
-            (user_id, geofence_id, status, marked_lat, marked_lng, distance)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            (user_id, geofence_id, status, marked_lat, marked_lng, distance, timestamp)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
         """
 
         cursor.execute(query, (
@@ -23,7 +42,8 @@ class AttendanceModel:
             data["status"],
             data["marked_lat"],
             data["marked_lng"],
-            data["distance"]
+            data["distance"],
+            timestamp
         ))
 
         conn.commit()
@@ -32,7 +52,28 @@ class AttendanceModel:
         return True
 
     # ---------------------------------------------------------
-    # LAST ATTENDANCE OF ADMIN
+    # CHECK DUPLICATE ATTENDANCE FOR SAME GEOFENCE
+    # ---------------------------------------------------------
+    @staticmethod
+    def has_marked_attendance(user_id, geofence_id):
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute("""
+            SELECT id FROM attendance
+            WHERE user_id=%s AND geofence_id=%s
+            LIMIT 1
+        """, (user_id, geofence_id))
+
+        result = cursor.fetchone()
+
+        cursor.close()
+        conn.close()
+
+        return result is not None
+
+    # ---------------------------------------------------------
+    # GET LAST ATTENDANCE OF ADMIN
     # ---------------------------------------------------------
     @staticmethod
     def get_latest_admin_attendance(user_id):
@@ -50,12 +91,17 @@ class AttendanceModel:
         """, (user_id,))
 
         result = cursor.fetchone()
+
         cursor.close()
         conn.close()
+
+        if result and result.get("timestamp"):
+            result["timestamp"] = AttendanceModel.to_ist(result["timestamp"])
+
         return result
 
     # ---------------------------------------------------------
-    # GET ATTENDANCE FOR ROLE (admin or student)
+    # GET ATTENDANCE LIST BY ROLE (student/admin)
     # ---------------------------------------------------------
     @staticmethod
     def get_attendance_for_role(role):
@@ -80,13 +126,20 @@ class AttendanceModel:
             ORDER BY attendance.timestamp DESC
         """, (role,))
 
-        result = cursor.fetchall()
+        rows = cursor.fetchall()
+
         cursor.close()
         conn.close()
-        return result
+
+        # Convert timestamps → IST
+        for r in rows:
+            if r.get("timestamp"):
+                r["timestamp"] = AttendanceModel.to_ist(r["timestamp"])
+
+        return rows
 
     # ---------------------------------------------------------
-    # GET FULL ATTENDANCE OF A SINGLE USER
+    # FULL ATTENDANCE OF A SINGLE USER
     # ---------------------------------------------------------
     @staticmethod
     def get_user_attendance(user_id):
@@ -105,30 +158,14 @@ class AttendanceModel:
             ORDER BY attendance.timestamp DESC
         """, (user_id,))
 
-        result = cursor.fetchall()
-        cursor.close()
-        conn.close()
-
-        return result
-
-    # ---------------------------------------------------------
-    # CHECK IF USER ALREADY MARKED FOR SAME GEOFENCE
-    # ---------------------------------------------------------
-    @staticmethod
-    def has_marked_attendance(user_id, geofence_id):
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-
-        cursor.execute("""
-            SELECT id 
-            FROM attendance
-            WHERE user_id=%s AND geofence_id=%s
-            LIMIT 1
-        """, (user_id, geofence_id))
-
-        result = cursor.fetchone()
+        rows = cursor.fetchall()
 
         cursor.close()
         conn.close()
 
-        return result is not None
+        # Convert timestamp → IST
+        for r in rows:
+            if r.get("timestamp"):
+                r["timestamp"] = AttendanceModel.to_ist(r["timestamp"])
+
+        return rows

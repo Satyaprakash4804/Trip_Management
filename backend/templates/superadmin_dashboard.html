@@ -119,6 +119,27 @@
         <tbody></tbody>
     </table>
 </div>
+<!-- NOTIFICATIONS CARD -->
+<div class="card">
+    <h3>Notifications</h3>
+    <button class="btn" onclick="window.location='/notifications'">Open Notifications</button>
+</div>
+<!-- ========= NOTIFICATIONS ========== -->
+<div class="card">
+    <h3>Notifications</h3>
+
+    <table class="table" id="notifyTable">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Message</th>
+                <th>From</th>
+                <th>Time</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
 
 <div class="card">
     <h3>Attendance</h3>
@@ -178,6 +199,27 @@ function loadAttendance(){
         });
     });
 }
+/* ----------------------- LOAD NOTIFICATIONS ----------------------- */
+function loadNotifications() {
+    fetch("/api/notifications/list", { credentials:"include" })
+    .then(r=>r.json())
+    .then(d=>{
+        let tbody = document.querySelector("#notifyTable tbody");
+        tbody.innerHTML = "";
+
+        d.data.forEach(n=>{
+            tbody.innerHTML += `
+                <tr>
+                    <td><b>${n.title}</b></td>
+                    <td class="notice-msg">${n.message}</td>
+                    <td>${n.sender_name}</td>
+                    <td>${n.timestamp}</td>
+                </tr>
+            `;
+        });
+    });
+}
+
 </script>
 
 {% endblock %}

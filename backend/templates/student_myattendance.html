@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>My Attendance</h2>
+
+<table border="1" cellpadding="8">
+    <thead>
+        <tr>
+            <th>Status</th>
+            <th>Landmark</th>
+            <th>Time</th>
+        </tr>
+    </thead>
+    <tbody id="attList"></tbody>
+</table>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    fetch("/api/student/my_attendance", { credentials:"include" })
+    .then(r => r.json())
+    .then(d => {
+        let tbody = document.getElementById("attList");
+        tbody.innerHTML = "";
+
+        d.data.forEach(x => {
+            tbody.innerHTML += `
+            <tr>
+                <td>${x.status}</td>
+                <td>${x.landmark || "-"}</td>
+                <td>${x.timestamp}</td>
+            </tr>
+            `;
+        });
+    });
+});
+</script>
+
+{% endblock %}

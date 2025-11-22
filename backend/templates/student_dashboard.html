@@ -2,62 +2,128 @@
 {% block content %}
 
 <style>
-    .logout-btn {
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        background: #d32f2f;
-        color: white;
-        padding: 10px 16px;
-        border-radius: 6px;
-        border: none;
-        cursor: pointer;
-        transition: 0.3s;
-    }
-    .logout-btn:hover { background:#b71c1c; }
+/* -------------------- Page Title -------------------- */
+.page-title {
+    color:#1a237e;
+    font-size:28px;
+    font-weight:700;
+    margin-top:20px;
+    margin-bottom:25px;
+}
 
-    .card {
-        background:white;
-        padding:20px;
-        border-radius:10px;
-        margin-top:25px;
-        box-shadow:0 4px 10px rgba(0,0,0,0.1);
-    }
+/* -------------------- Cards -------------------- */
+.card {
+    background: white;
+    padding:22px;
+    border-radius:14px;
+    margin-top:25px;
+    box-shadow:0 6px 18px rgba(0,0,0,0.08);
+    transition:0.25s ease;
+}
+.card:hover {
+    transform: translateY(-3px);
+    box-shadow:0 10px 25px rgba(0,0,0,0.12);
+}
 
-    .btn {
-        padding:10px 16px;
-        border:none;
-        border-radius:6px;
-        background:#1a237e;
-        color:white;
-        cursor:pointer;
-        margin-top:10px;
-    }
+/* -------------------- Buttons -------------------- */
+.btn {
+    padding:12px 18px;
+    border:none;
+    border-radius:8px;
+    background:#1a237e;
+    color:white;
+    cursor:pointer;
+    margin-top:10px;
+    transition:0.25s;
+    font-size:15px;
+    font-weight:600;
+}
+.btn:hover {
+    background:#0d1450;
+}
 
-    .disabled-btn {
-        background: gray !important;
-        cursor: not-allowed;
-    }
+.disabled-btn {
+    background: #9e9e9e !important;
+    cursor: not-allowed;
+}
 
-    .tick {
-        color: green;
-        font-size: 20px;
-        font-weight: bold;
-    }
+/* -------------------- Upload Inputs -------------------- */
+.card input {
+    padding:10px;
+    width:100%;
+    border-radius:8px;
+    border:1px solid #ccc;
+    margin-top:10px;
+}
+
+/* -------------------- Tables -------------------- */
+.table {
+    width:100%;
+    border-collapse:collapse;
+    margin-top:15px;
+}
+
+.table thead {
+    background:#1a237e;
+    color:white;
+}
+
+.table th,
+.table td {
+    padding:12px;
+    border-bottom:1px solid #ddd;
+    text-align:left;
+    font-size:14px;
+}
+
+.table tr:hover {
+    background:#f1f1f1;
+}
+
+/* Tick for present */
+.tick {
+    color: green;
+    font-size:20px;
+    font-weight:bold;
+}
+
+/* Notification message styling */
+.notice-msg {
+    font-weight:600;
+    color:#1a237e;
+}
+
 </style>
 
-<button class="logout-btn" onclick="logoutUser()">Logout</button>
+<!-- TITLE -->
+<h2 class="page-title">Student Dashboard</h2>
 
-<h2 style="color:#1a237e; margin-top:60px;">Student Dashboard</h2>
-
-<!-- ========= MARK ATTENDANCE ========= -->
+<!-- ========= MARK ATTENDANCE ========== -->
 <div class="card">
     <h3>Mark Attendance</h3>
+    <p style="color:#555; margin-top:5px;">Mark your attendance using GPS verification.</p>
+
     <button class="btn disabled-btn" id="markBtn" disabled>Mark Now</button>
-    <p id="attMsg"></p>
+    <p id="attMsg" style="margin-top:10px;"></p>
+</div>
+<!-- ========= NOTIFICATIONS ========== -->
+<div class="card">
+    <h3>Notifications</h3>
+
+    <table class="table" id="notifyTable">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Message</th>
+                <th>From</th>
+                <th>Time</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
 </div>
 
-<!-- ========= PHOTO UPLOAD ========= -->
+<!-- ========= UPLOAD TRIP PHOTOS ========== -->
 <div class="card">
     <h3>Upload Trip Photo</h3>
 
@@ -68,13 +134,14 @@
     <p id="uploadMsg"></p>
 </div>
 
-<!-- ========= MY ATTENDANCE ========= -->
+
+<!-- ========= MY ATTENDANCE ========== -->
 <div class="card">
     <h3>My Attendance</h3>
 
-    <button class="btn" onclick="loadAttendance()">Load</button>
+    <button class="btn" onclick="loadAttendance()">Load Attendance</button>
 
-    <table id="attTable">
+    <table class="table" id="attTable">
         <thead>
             <tr>
                 <th>Status</th>
@@ -90,64 +157,42 @@
 <script>
 let CURRENT_USER = null;
 
-/* -----------------------
-   LOGOUT
--------------------------*/
-function logoutUser() {
-    fetch("/api/auth/logout", { method:"GET", credentials:"include"})
-    .then(() => window.location.href = "/login");
-}
-
-/* -----------------------
-   ON PAGE LOAD → CHECK LOGIN
--------------------------*/
+/* ----------------------- CHECK LOGIN ----------------------- */
 document.addEventListener("DOMContentLoaded", () => {
-
-    fetch("/api/auth/check", { credentials: "include" })
+    fetch("/api/auth/check", { credentials:"include" })
     .then(r => r.json())
     .then(res => {
-
-        if (!res.logged_in) {
-            window.location.href = "/login";
-            return;
-        }
+        if (!res.logged_in) return window.location.href = "/login";
 
         CURRENT_USER = res.user;
         checkGeoStatus();
+        loadNotifications();  // load when page opens
     });
 });
 
-/* -----------------------
-   CHECK IF MASTER ENABLED GEOFENCE
--------------------------*/
+/* ----------------------- CHECK GEOFENCE ----------------------- */
 function checkGeoStatus() {
-
     fetch("/api/student/geofence_status")
     .then(r => r.json())
     .then(res => {
-
         let btn = document.getElementById("markBtn");
 
         if (!res.enabled) {
             btn.disabled = true;
-            btn.classList.add("disabled-btn");
             btn.innerText = "Attendance Not Available";
+            btn.classList.add("disabled-btn");
             return;
         }
 
         btn.disabled = false;
         btn.classList.remove("disabled-btn");
         btn.innerText = "Mark Now";
-
         btn.onclick = markAttendance;
     });
 }
 
-/* -----------------------
-   MARK ATTENDANCE
--------------------------*/
+/* ----------------------- MARK ATTENDANCE ----------------------- */
 function markAttendance() {
-
     navigator.geolocation.getCurrentPosition(pos => {
 
         const data = {
@@ -157,65 +202,54 @@ function markAttendance() {
         };
 
         fetch("/api/student/mark_attendance", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
+            method:"POST",
+            headers: { "Content-Type":"application/json" },
+            credentials:"include",
             body: JSON.stringify(data)
         })
         .then(r => r.json())
         .then(d => {
-
             let msg = document.getElementById("attMsg");
             let btn = document.getElementById("markBtn");
 
             msg.innerHTML = d.message;
             msg.style.color = d.success ? "green" : "red";
 
-            // Disable button after successful OR already marked
             if (d.success || d.already_marked) {
                 btn.disabled = true;
                 btn.classList.add("disabled-btn");
                 btn.innerText = "Attendance Marked";
             }
-
         });
 
-    }, () => {
-        alert("Location permission denied! Please enable GPS.");
-    });
+    }, () => alert("Enable GPS to mark attendance."));
 }
 
-/* -----------------------
-   PHOTO UPLOAD
--------------------------*/
-function uploadPic(){
-
+/* ----------------------- UPLOAD PHOTO ----------------------- */
+function uploadPic() {
     let fileInput = document.getElementById("photo");
 
-    if (!fileInput.files.length) return alert("Please select a photo!");
+    if (!fileInput.files.length) return alert("Select a photo!");
 
     let form = new FormData();
     form.append("description", document.getElementById("desc").value);
     form.append("file", fileInput.files[0]);
 
     fetch("/api/student/upload", {
-        method: "POST",
-        credentials: "include",
+        method:"POST",
+        credentials:"include",
         body: form
     })
     .then(r => r.json())
     .then(d => {
         let msg = document.getElementById("uploadMsg");
-        msg.innerHTML = d.message;
+        msg.textContent = d.message;
         msg.style.color = d.success ? "green" : "red";
     });
 }
 
-/* -----------------------
-   MY ATTENDANCE LIST
--------------------------*/
+/* ----------------------- LOAD ATTENDANCE ----------------------- */
 function loadAttendance() {
-
     fetch("/api/student/my_attendance", { credentials:"include" })
     .then(r => r.json())
     .then(d => {
@@ -234,6 +268,28 @@ function loadAttendance() {
         });
     });
 }
+
+/* ----------------------- LOAD NOTIFICATIONS ----------------------- */
+function loadNotifications() {
+    fetch("/api/notifications/list", { credentials:"include" })
+    .then(r=>r.json())
+    .then(d=>{
+        let tbody = document.querySelector("#notifyTable tbody");
+        tbody.innerHTML = "";
+
+        d.data.forEach(n=>{
+            tbody.innerHTML += `
+                <tr>
+                    <td><b>${n.title}</b></td>
+                    <td class="notice-msg">${n.message}</td>
+                    <td>${n.sender_name}</td>
+                    <td>${n.timestamp}</td>
+                </tr>
+            `;
+        });
+    });
+}
+
 </script>
 
 {% endblock %}

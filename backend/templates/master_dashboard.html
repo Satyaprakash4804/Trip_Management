@@ -106,6 +106,28 @@
         </table>
     </div>
 </div>
+<!-- NOTIFICATIONS CARD -->
+<div class="section-card">
+    <h3>Notifications</h3>
+    <p>View and send alerts to users.</p>
+    <button class="btn" onclick="window.location='/notifications'">Open Notifications</button>
+</div>
+<!-- ========= NOTIFICATIONS ========== -->
+<div class="card">
+    <h3>Notifications</h3>
+
+    <table class="table" id="notifyTable">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Message</th>
+                <th>From</th>
+                <th>Time</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
 
 <!-- ---------------------- GEOFENCE ---------------------- -->
 <div class="section-card">
@@ -139,6 +161,7 @@ function logoutUser() {
     fetch("/api/auth/logout")
     .then(() => window.location.href="/login");
 }
+
 
 
 // ---------------- CREATE USER ----------------
@@ -192,6 +215,26 @@ function loadStudents(){
     });
 }
 
+/* ----------------------- LOAD NOTIFICATIONS ----------------------- */
+function loadNotifications() {
+    fetch("/api/notifications/list", { credentials:"include" })
+    .then(r=>r.json())
+    .then(d=>{
+        let tbody = document.querySelector("#notifyTable tbody");
+        tbody.innerHTML = "";
+
+        d.data.forEach(n=>{
+            tbody.innerHTML += `
+                <tr>
+                    <td><b>${n.title}</b></td>
+                    <td class="notice-msg">${n.message}</td>
+                    <td>${n.sender_name}</td>
+                    <td>${n.timestamp}</td>
+                </tr>
+            `;
+        });
+    });
+}
 
 // ---------------- LOAD ADMINS ----------------
 function loadAdmins(){
