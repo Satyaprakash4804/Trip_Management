@@ -40,9 +40,13 @@ class AttendanceModel:
         cursor = conn.cursor(dictionary=True)
 
         cursor.execute("""
-            SELECT * FROM attendance
-            WHERE user_id = %s
-            ORDER BY id DESC LIMIT 1
+            SELECT 
+                attendance.*,
+                users.role
+            FROM attendance
+            JOIN users ON attendance.user_id = users.id
+            WHERE attendance.user_id = %s
+            ORDER BY attendance.id DESC LIMIT 1
         """, (user_id,))
 
         result = cursor.fetchone()
@@ -51,7 +55,7 @@ class AttendanceModel:
         return result
 
     # ---------------------------------------------------------
-    # GET ATTENDANCE FOR ROLE
+    # GET ATTENDANCE FOR ROLE (admin or student)
     # ---------------------------------------------------------
     @staticmethod
     def get_attendance_for_role(role):
@@ -67,7 +71,8 @@ class AttendanceModel:
                 attendance.distance,
                 attendance.timestamp,
                 geofence.landmark,
-                users.name
+                users.name,
+                users.role
             FROM attendance
             JOIN users ON attendance.user_id = users.id
             LEFT JOIN geofence ON attendance.geofence_id = geofence.id
@@ -81,7 +86,7 @@ class AttendanceModel:
         return result
 
     # ---------------------------------------------------------
-    # GET ATTENDANCE OF SPECIFIC USER
+    # GET FULL ATTENDANCE OF A SINGLE USER
     # ---------------------------------------------------------
     @staticmethod
     def get_user_attendance(user_id):
@@ -91,9 +96,11 @@ class AttendanceModel:
         cursor.execute("""
             SELECT 
                 attendance.*,
-                geofence.landmark
+                geofence.landmark,
+                users.role
             FROM attendance
             LEFT JOIN geofence ON attendance.geofence_id = geofence.id
+            JOIN users ON attendance.user_id = users.id
             WHERE attendance.user_id = %s
             ORDER BY attendance.timestamp DESC
         """, (user_id,))
@@ -105,7 +112,7 @@ class AttendanceModel:
         return result
 
     # ---------------------------------------------------------
-    # CHECK IF USER ALREADY MARKED ATTENDANCE
+    # CHECK IF USER ALREADY MARKED FOR SAME GEOFENCE
     # ---------------------------------------------------------
     @staticmethod
     def has_marked_attendance(user_id, geofence_id):
@@ -113,7 +120,8 @@ class AttendanceModel:
         cursor = conn.cursor(dictionary=True)
 
         cursor.execute("""
-            SELECT id FROM attendance
+            SELECT id 
+            FROM attendance
             WHERE user_id=%s AND geofence_id=%s
             LIMIT 1
         """, (user_id, geofence_id))
