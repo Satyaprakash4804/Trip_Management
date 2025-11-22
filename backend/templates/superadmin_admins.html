@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+/* ---------- PAGE TITLE ---------- */
+.page-title {
+    font-size: 30px;
+    font-weight: 700;
+    color: #1a237e;
+    margin-bottom: 25px;
+    letter-spacing: 0.4px;
+}
+
+/* ---------- CARD ---------- */
+.section-card {
+    background: #ffffff;
+    padding: 22px;
+    border-radius: 16px;
+    margin-top: 20px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.10);
+    transition: 0.25s ease;
+}
+.section-card:hover {
+    transform: translateY(-3px);
+}
+
+/* ---------- BUTTON ---------- */
+.btn {
+    background: #1a237e;
+    color: white;
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    margin-bottom: 8px;
+    transition: 0.3s;
+}
+.btn:hover {
+    background: #0d1450;
+    transform: scale(1.05);
+}
+
+/* ---------- TABLE ---------- */
+.table-box {
+    max-height: 420px;
+    overflow-y: auto;
+    margin-top: 12px;
+    border-radius: 12px;
+    border: 1px solid #ddd;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+thead th {
+    background: #1a237e;
+    color: white;
+    padding: 12px;
+    position: sticky;
+    top: 0;
+    font-size: 15px;
+    letter-spacing: 0.3px;
+}
+
+tbody td {
+    padding: 12px;
+    background: white;
+    border-bottom: 1px solid #efefef;
+    font-size: 14px;
+}
+
+/* Hover effect */
+tbody tr:hover td {
+    background: #eef2ff;
+    transition: 0.2s;
+}
+
+/* ---------- BADGE STYLES ---------- */
+.badge {
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    color: white;
+    font-weight: 600;
+}
+.badge-missing { background: #d32f2f; }
+.badge-ok { background: #43a047; }
+
+@media(max-width: 600px){
+    thead th, tbody td { font-size: 13px; }
+}
+</style>
+
+
+<h2 class="page-title">All Admins</h2>
+
+<div class="section-card">
+
+    <button class="btn" onclick="loadAdmins()">⟳ Refresh</button>
+
+    <div class="table-box">
+        <table id="adminsTable">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Mobile</th>
+                    <th>Email</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+</div>
+
+
+<script>
+function loadAdmins(){
+    fetch("/api/superadmin/admins")
+    .then(r => r.json())
+    .then(d => {
+        let tbody = document.querySelector("#adminsTable tbody");
+        tbody.innerHTML = "";
+
+        d.data.forEach(a => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${a.name}</td>
+
+                    <td>
+                        ${a.mobile 
+                            ? a.mobile 
+                            : "<span class='badge badge-missing'>No Mobile</span>"
+                        }
+                    </td>
+
+                    <td>
+                        ${a.email 
+                            ? a.email 
+                            : "<span class='badge badge-missing'>No Email</span>"
+                        }
+                    </td>
+                </tr>
+            `;
+        });
+    });
+}
+loadAdmins();
+</script>
+
+{% endblock %}
