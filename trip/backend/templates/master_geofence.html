@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+.map-box {
+    width: 100%;
+    height: 340px;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-top: 15px;
+}
+.section-card {
+    background:white;
+    padding:20px;
+    border-radius:12px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.1);
+    margin-top:20px;
+}
+input {
+    width:100%;
+    padding:12px;
+    margin-top:8px;
+    border-radius:8px;
+    border:1px solid #ccc;
+}
+.btn {
+    background:#1a237e;
+    color:white;
+    padding:10px 16px;
+    border-radius:8px;
+    border:none;
+    cursor:pointer;
+    margin-top:10px;
+}
+.table-box {
+    margin-top:20px;
+    max-height:350px;
+    overflow:auto;
+}
+table {
+    width:100%;
+    border-collapse: collapse;
+}
+th {
+    background:#1a237e;
+    color:white;
+    padding:10px;
+    position:sticky;
+    top:0;
+}
+td {
+    padding:8px;
+    background:white;
+    border-bottom:1px solid #ddd;
+}
+</style>
+
+<h2 style="color:#1a237e;">Set Geofence</h2>
+
+<div class="section-card">
+    <label>Landmark</label>
+    <input id="landmark" placeholder="Enter Landmark">
+
+    <label>Radius (meters)</label>
+    <input id="radius" type="number" value="200">
+
+    <label>Valid For (Minutes)</label>
+    <input id="valid_minutes" type="number" value="60">
+
+    <p style="margin-top:10px;">Click on map to pick location</p>
+
+    <div id="map" class="map-box"></div>
+
+    <button class="btn" onclick="useMyLocation()">Use My Current Location</button>
+    <button class="btn" onclick="saveFence()">Save Geofence</button>
+
+    <p id="msg"></p>
+</div>
+
+
+<h2 style="margin-top:30px; color:#1a237e;">Geofence History</h2>
+
+<div class="section-card table-box">
+    <table>
+        <thead>
+            <tr>
+                <th>Landmark</th>
+                <th>Lat</th>
+                <th>Lng</th>
+                <th>Set Time</th>
+                <th>Expires</th>
+                <th>Attendance Count</th>
+            </tr>
+        </thead>
+        <tbody id="geoTable"></tbody>
+    </table>
+</div>
+
+<script src="https://apis.mappls.com/advancedmaps/api/cc411a189dd0edd91167de276484ce2d/map_sdk?layer=vector&v=3.0"></script>
+
+<script>
+let map;
+let marker;
+
+function initMap() {
+    map = new mappls.Map("map", {
+        center: {lat: 28.6139, lng: 77.2090},
+        zoom: 12
+    });
+
+    // FIXED CLICK EVENT (Mappls uses e.lat, e.lng depending on version)
+    map.on("click", function(e){
+        console.log("Map Click:", e);
+        let lat = e.lat || e.latitude;
+        let lng = e.lng || e.longitude;
+
+        if(!lat || !lng){
+            console.error("Map click did not return lat/lng");
+            return;
+        }
+
+        setMarker(lat, lng);
+    });
+}
+
+function setMarker(lat, lng){
+    if(marker){ marker.remove(); }
+
+    marker = new mappls.Marker({
+        map: map,
+        position: {lat: lat, lng: lng}
+    });
+
+    window.pick_lat = lat;
+    window.pick_lng = lng;
+}
+
+function useMyLocation(){
+    navigator.geolocation.getCurrentPosition(pos=>{
+        let lat = pos.coords.latitude;
+        let lng = pos.coords.longitude;
+
+        setMarker(lat, lng);
+        map.setCenter({lat, lng});
+        map.setZoom(15);
+    });
+}
+
+function saveFence(){
+    if(!window.pick_lat){
+        alert("Please click on the map to set location");
+        return;
+    }
+
+    let data = {
+        landmark: landmark.value,
+        latitude: window.pick_lat,
+        longitude: window.pick_lng,
+        radius: radius.value,
+        valid_minutes: valid_minutes.value
+    };
+
+    console.log("Sending Geofence Data:", data);
+
+    fetch("/api/master/set_geofence", {
+        method:"POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify(data)
+    })
+    .then(r => r.json())
+    .then(d => {
+        console.log("Response:", d);
+        if(d.success){
+            msg.innerHTML = d.message;
+            msg.style.color = "green";
+        } else {
+            msg.innerHTML = d.message;
+            msg.style.color = "red";
+        }
+        loadHistory();
+    })
+    .catch(err => {
+        console.error("SAVE ERROR:", err);
+        msg.innerHTML = "Error saving geofence.";
+        msg.style.color = "red";
+    });
+}
+
+function loadHistory(){
+    fetch("/api/master/geofences")
+    .then(r => r.json())
+    .then(res => {
+        console.log("History:", res);
+
+        let tb = document.getElementById("geoTable");
+        tb.innerHTML = "";
+
+        res.data.forEach(row=>{
+            tb.innerHTML += `
+                <tr>
+                    <td>${row.landmark}</td>
+                    <td>${row.latitude}</td>
+                    <td>${row.longitude}</td>
+                    <td>${row.created_at || "-"}</td>
+                    <td>${row.expires_at || "-"}</td>
+                    <td>${row.attendance_count}</td>
+                </tr>
+            `;
+        });
+    });
+}
+
+initMap();
+loadHistory();
+</script>
+
+{% endblock %}

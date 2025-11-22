@@ -51,13 +51,13 @@ class AttendanceModel:
         return result
 
     # ---------------------------------------------------------
-    # GET ATTENDANCE FOR ROLE
+    # GET ATTENDANCE FOR ROLE (FIXED, COMPLETE)
     # ---------------------------------------------------------
     @staticmethod
     def get_attendance_for_role(role):
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-
+    
         cursor.execute("""
             SELECT 
                 attendance.id,
@@ -74,11 +74,29 @@ class AttendanceModel:
             WHERE users.role = %s
             ORDER BY attendance.timestamp DESC
         """, (role,))
-
-        result = cursor.fetchall()
+    
+        rows = cursor.fetchall()
         cursor.close()
         conn.close()
-        return result
+
+        return rows
+  
+    @staticmethod
+    def has_marked_attendance(user_id, geofence_id):
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+    
+        cursor.execute("""
+            SELECT id FROM attendance 
+            WHERE user_id=%s AND geofence_id=%s LIMIT 1
+        """, (user_id, geofence_id))
+
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+    
+        return row is not None
+
 
     # ---------------------------------------------------------
     # GET ATTENDANCE OF SPECIFIC USER
@@ -103,24 +121,3 @@ class AttendanceModel:
         conn.close()
 
         return result
-
-    # ---------------------------------------------------------
-    # CHECK IF USER ALREADY MARKED ATTENDANCE
-    # ---------------------------------------------------------
-    @staticmethod
-    def has_marked_attendance(user_id, geofence_id):
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-
-        cursor.execute("""
-            SELECT id FROM attendance
-            WHERE user_id=%s AND geofence_id=%s
-            LIMIT 1
-        """, (user_id, geofence_id))
-
-        result = cursor.fetchone()
-
-        cursor.close()
-        conn.close()
-
-        return result is not None

@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+    .logout-btn {
+        position:absolute;top:20px;right:20px;
+        background:#d32f2f;color:white;padding:10px 16px;
+        border-radius:6px;border:none;cursor:pointer;
+    }
+    .logout-btn:hover { background:#b71c1c; }
+
+    .section-card {
+        background:white;padding:20px;border-radius:10px;
+        margin-top:20px;box-shadow:0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    input, select {
+        padding:10px;width:100%;margin-top:8px;
+        border:1px solid #bbb;border-radius:6px;
+    }
+
+    .btn {
+        padding:10px 18px;border:none;border-radius:6px;
+        background:#1a237e;color:white;cursor:pointer;
+        font-size:14px;margin-top:10px;
+    }
+
+    /* ---------- EDIT MODAL ---------- */
+    #editModal {
+        position:fixed;top:0;left:0;width:100%;height:100%;
+        background:rgba(0,0,0,0.6);display:none;
+        justify-content:center;align-items:center;
+    }
+    .edit-box {
+        background:white;padding:25px;border-radius:10px;
+        width:90%;max-width:400px;
+    }
+</style>
+
+<button class="logout-btn" onclick="logoutUser()">Logout</button>
+
+<h2 style="color:#1a237e;margin-top:60px;">Master Dashboard</h2>
+
+<!-- ---------------------- CREATE USER ---------------------- -->
+<div class="section-card">
+    <h3>Create User</h3>
+
+    <select id="role">
+        <option value="student">Student</option>
+        <option value="admin">Admin</option>
+        <option value="super_admin">Super Admin</option>
+    </select>
+
+    <input id="username" placeholder="Username">
+    <input id="password" placeholder="Password">
+
+    <button class="btn" onclick="createUser()">Create User</button>
+    <p id="createMsg"></p>
+</div>
+
+
+<!-- ---------------------- EDIT MODAL ---------------------- -->
+<div id="editModal">
+    <div class="edit-box">
+        <h3>Edit User</h3>
+
+        <input id="edit_name" placeholder="Full Name">
+        <input id="edit_mobile" placeholder="Mobile">
+        <input id="edit_email" placeholder="Email">
+        <input id="edit_college" placeholder="College ID">
+
+        <button class="btn" onclick="saveEdit()">Save</button>
+        <button class="btn" style="background:gray;" onclick="closeEdit()">Cancel</button>
+
+        <p id="editMsg"></p>
+    </div>
+</div>
+
+<script>
+
+let currentEditId = null;
+
+// ---------------- LOGOUT ----------------
+function logoutUser() {
+    fetch("/api/auth/logout")
+    .then(() => window.location.href="/login");
+}
+
+// ---------------- CREATE USER ----------------
+function createUser(){
+    let data = {
+        role: role.value,
+        username: username.value,
+        password: password.value
+    };
+
+    fetch("/api/master/create_user", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify(data)
+    })
+    .then(r=>r.json())
+    .then(d=>{
+        createMsg.innerHTML = d.message;
+    });
+}
+
+</script>
+
+{% endblock %}

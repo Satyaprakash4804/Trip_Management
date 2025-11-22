@@ -6,9 +6,8 @@ from models.attendance_model import AttendanceModel
 admin_bp = Blueprint("admin_bp", __name__)
 
 
-# ----------------------------------------------------------------------
-# CHECK IF ADMIN CAN MARK ATTENDANCE
-# ----------------------------------------------------------------------
+# ----------------------- CHECK IF ADMIN CAN MARK ATTENDANCE -----------------------
+
 @admin_bp.get("/check_attendance_status")
 def check_attendance_status():
     from utils.jwt_helper import JWTHelper
@@ -27,43 +26,56 @@ def check_attendance_status():
 
     last_att = AttendanceModel.get_latest_admin_attendance(user_id)
 
-    # First time → allow
+    # Never attended → allow
     if not last_att:
         return jsonify({"allowed": True})
 
-    # If admin already marked attendance for this geofence → block
+    # If last attendance belongs to same geofence → block
     if last_att["geofence_id"] == latest_geofence["id"]:
         return jsonify({"allowed": False})
 
     return jsonify({"allowed": True})
 
 
-# ----------------------------------------------------------------------
-# MARK ATTENDANCE (ADMIN OR STUDENT)
-# ----------------------------------------------------------------------
-@admin_bp.post("/mark_attendance")
-def mark_attendance():
-    data = request.json
+@staticmethod
+def mark_attendance(data):
+    try:
+        user_id = data.get("user_id")
+        lat = float(data.get("marked_lat"))
+        lng = float(data.get("marked_lng"))
 
-    # Fetch latest geofence
-    geofence = GeofenceModel.get_latest_geofence()
-    if not geofence:
-        return jsonify({"success": False, "message": "Master has not set the geofence yet"})
+        geofence = GeofenceModel.get_active_geofence()
 
-    # Auto-attach geofence
-    data["geofence_id"] = geofence["id"]
+        if not geofence:
+            return {"success": False, "message": "No active geofence found"}
 
-    # Safety check: role must be provided
-    if "role" not in data:
-        return jsonify({"success": False, "message": "User role missing in request"})
+        from geopy.distance import geodesic
+        distance = geodesic(
+            (lat, lng),
+            (geofence["latitude"], geofence["longitude"])
+        ).meters
 
-    result = AdminController.mark_attendance(data)
-    return jsonify(result)
+        if distance > geofence["radius"]:
+            return {"success": False, "message": "You are outside geofence!"}
+
+        AttendanceModel.mark_attendance({
+            "user_id": user_id,
+            "geofence_id": geofence["id"],
+            "status": "present",
+            "marked_lat": lat,
+            "marked_lng": lng,
+            "distance": distance
+        })
+
+        return {"success": True, "message": "Attendance marked"}
+    
+    except Exception as e:
+        print("ERROR:", e)
+        return {"success": False, "message": str(e)}
 
 
-# ----------------------------------------------------------------------
-# UPLOAD PHOTO
-# ----------------------------------------------------------------------
+
+# ----------------------- UPLOAD FILE -----------------------
 @admin_bp.post("/upload")
 def upload():
     user_id = request.form.get("user_id")
@@ -85,18 +97,14 @@ def upload():
     return jsonify(result)
 
 
-# ----------------------------------------------------------------------
-# GET STUDENT LIST
-# ----------------------------------------------------------------------
+# ----------------------- GET STUDENTS -----------------------
 @admin_bp.get("/students")
 def students():
     result = AdminController.student_details()
     return jsonify(result)
 
 
-# ----------------------------------------------------------------------
-# GET ATTENDANCE RECORDS (ADMIN + STUDENT)
-# ----------------------------------------------------------------------
+# ----------------------- GET ATTENDANCE RECORDS -----------------------
 @admin_bp.get("/attendance")
 def attendance():
     result = AdminController.attendance_data()

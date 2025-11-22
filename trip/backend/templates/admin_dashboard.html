@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2 style="color:#1a237e;">Admin Dashboard</h2>
+
+<style>
+    .card-box {
+        background:white;
+        padding:20px;
+        border-radius:10px;
+        box-shadow:0 4px 10px rgba(0,0,0,0.1);
+        margin-top:20px;
+    }
+    .disabled-btn {
+        background: #9e9e9e !important;
+        cursor: not-allowed !important;
+    }
+
+    /* Logout Button */
+    .logout-btn {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #d32f2f;
+        color: white;
+        padding: 10px 16px;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        transition: 0.3s;
+        z-index: 1000;
+        font-size: 14px;
+        font-weight: bold;
+    }
+    .logout-btn:hover {
+        background: #b71c1c;
+    }
+</style>
+
+<!-- LOGOUT BUTTON -->
+<button class="logout-btn" onclick="logoutUser()">Logout</button>
+
+<!-- MARK ATTENDANCE -->
+<div class="card-box">
+    <h3>Mark Attendance</h3>
+    <button id="markBtn" class="btn" onclick="markAttendance()">Mark Now</button>
+    <p id="attMsg"></p>
+</div>
+
+<!-- UPLOAD PHOTO -->
+<div class="card-box">
+    <h3>Upload Trip Photo</h3>
+
+    <input type="file" id="photo">
+    <input id="desc" placeholder="Description">
+
+    <button class="btn" onclick="uploadPic()">Upload</button>
+    <p id="uploadMsg"></p>
+</div>
+
+<!-- STUDENTS -->
+<div class="card-box">
+    <h3>Students</h3>
+    <button class="btn" onclick="loadStudents()">Load</button>
+
+    <table id="studentsTable">
+        <thead>
+            <tr><th>Name</th><th>Mobile</th><th>Email</th></tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+<!-- ATTENDANCE -->
+<div class="card-box">
+    <h3>Attendance Records</h3>
+    <button class="btn" onclick="loadAttendance()">Load</button>
+
+    <table id="attTable">
+        <thead>
+            <tr><th>Name</th><th>Status</th><th>Time</th></tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+<script>
+// --------------------------- LOGOUT ---------------------------
+function logoutUser() {
+    fetch("/api/auth/logout")
+        .then(r => r.json())
+        .then(() => {
+            localStorage.removeItem("user");
+            window.location.href = "/login";
+        });
+}
+
+
+// --------------------------- CHECK BUTTON STATUS ---------------------------
+function checkAttendanceStatus() {
+    fetch("/api/admin/check_attendance_status")
+        .then(r => r.json())
+        .then(res => {
+            let btn = document.getElementById("markBtn");
+
+            if (!res.allowed) {
+                btn.disabled = true;
+                btn.classList.add("disabled-btn");
+                btn.innerText = "Attendance Disabled";
+            } else {
+                btn.disabled = false;
+                btn.classList.remove("disabled-btn");
+                btn.innerText = "Mark Now";
+            }
+        });
+}
+checkAttendanceStatus();
+
+
+// --------------------------- MARK ATTENDANCE ---------------------------
+function markAttendance() {
+    let user = JSON.parse(localStorage.getItem("user"));
+
+    navigator.geolocation.getCurrentPosition(pos => {
+        let data = {
+            user_id: user.id,
+            marked_lat: pos.coords.latitude,
+            marked_lng: pos.coords.longitude,
+            distance: 0,
+            status: "present"
+        };
+
+        fetch("/api/admin/mark_attendance", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(data)
+        })
+        .then(r => r.json())
+        .then(d => {
+            document.getElementById("attMsg").innerHTML = d.message;
+            checkAttendanceStatus();
+        });
+    });
+}
+
+
+// --------------------------- UPLOAD PIC ---------------------------
+function uploadPic() {
+    let user = JSON.parse(localStorage.getItem("user"));
+
+    let fd = new FormData();
+    fd.append("user_id", user.id);
+    fd.append("description", document.getElementById("desc").value);
+    fd.append("file", document.getElementById("photo").files[0]);
+
+    fetch("/api/admin/upload", {
+        method: "POST",
+        body: fd
+    })
+    .then(r => r.json())
+    .then(d => {
+        document.getElementById("uploadMsg").innerHTML = d.message;
+    });
+}
+
+
+// --------------------------- LOAD STUDENTS ---------------------------
+function loadStudents() {
+    fetch("/api/admin/students")
+    .then(r => r.json())
+    .then(d => {
+        let tbody = document.querySelector("#studentsTable tbody");
+        tbody.innerHTML = "";
+
+        d.data.forEach(x => {
+            tbody.innerHTML += `
+                <tr><td>${x.name}</td><td>${x.mobile}</td><td>${x.email}</td></tr>
+            `;
+        });
+    });
+}
+
+
+// --------------------------- LOAD ATTENDANCE ---------------------------
+function loadAttendance() {
+    fetch("/api/admin/attendance")
+    .then(r => r.json())
+    .then(d => {
+        let tbody = document.querySelector("#attTable tbody");
+        tbody.innerHTML = "";
+
+        d.data.forEach(x => {
+            tbody.innerHTML += `
+                <tr><td>${x.name}</td><td>${x.status}</td><td>${x.timestamp}</td></tr>
+            `;
+        });
+    });
+}
+</script>
+
+{% endblock %}

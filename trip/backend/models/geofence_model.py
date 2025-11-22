@@ -9,20 +9,12 @@ class GeofenceModel:
     # ---------------------------------------------------------
     @staticmethod
     def create_geofence(data):
-        """
-        Expected data:
-         - landmark (str)
-         - latitude (float)
-         - longitude (float)
-         - radius (int)
-         - valid_minutes (int)
-        """
         conn = get_db_connection()
         cursor = conn.cursor()
 
         valid_minutes = int(data.get("valid_minutes", 0))
 
-        # Compute expiry time (or NULL if unlimited)
+        # expires_at → NULL or datetime
         expires_at = None
         if valid_minutes > 0:
             expires_at = datetime.now() + timedelta(minutes=valid_minutes)
@@ -41,7 +33,6 @@ class GeofenceModel:
         ))
 
         geofence_id = cursor.lastrowid
-
         conn.commit()
         cursor.close()
         conn.close()
@@ -49,29 +40,28 @@ class GeofenceModel:
         return geofence_id
 
     # ---------------------------------------------------------
-    # ALL GEOFENCES + ATTENDANCE COUNT
+    # ALL GEOFENCES + COUNT
     # ---------------------------------------------------------
     @staticmethod
     def get_all_geofences_with_count():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        query = """
+        cursor.execute("""
             SELECT 
                 g.*,
-                IFNULL((SELECT COUNT(*) FROM attendance a 
-                        WHERE a.geofence_id = g.id), 0) AS attendance_count
+                IFNULL((SELECT COUNT(*) FROM attendance a WHERE a.geofence_id = g.id), 0)
+                    AS attendance_count
             FROM geofence g
             ORDER BY g.created_at DESC
-        """
+        """)
 
-        cursor.execute(query)
         rows = cursor.fetchall()
 
         cursor.close()
         conn.close()
 
-        # Convert datetime → ISO string
+        # Convert datetime
         for r in rows:
             if isinstance(r.get("created_at"), datetime):
                 r["created_at"] = r["created_at"].isoformat()
@@ -84,25 +74,25 @@ class GeofenceModel:
         return rows
 
     # ---------------------------------------------------------
-    # ACTIVE (NOT EXPIRED) GEOFENCE
+    # ACTIVE GEOFENCE (NOT EXPIRED)
+    # USED BY STUDENTS + ADMINS
     # ---------------------------------------------------------
     @staticmethod
     def get_active_geofence():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        query = """
+        cursor.execute("""
             SELECT 
                 g.*,
-                IFNULL((SELECT COUNT(*) FROM attendance a 
-                        WHERE a.geofence_id = g.id), 0) AS attendance_count
+                IFNULL((SELECT COUNT(*) FROM attendance a WHERE a.geofence_id = g.id), 0)
+                    AS attendance_count
             FROM geofence g
-            WHERE (g.expires_at IS NULL OR g.expires_at > NOW())
+            WHERE g.expires_at IS NULL OR g.expires_at > NOW()
             ORDER BY g.created_at DESC
             LIMIT 1
-        """
+        """)
 
-        cursor.execute(query)
         row = cursor.fetchone()
 
         cursor.close()
@@ -122,25 +112,24 @@ class GeofenceModel:
         return row
 
     # ---------------------------------------------------------
-    # LATEST GEOFENCE (EVEN IF EXPIRED)
-    # REQUIRED FOR ATTENDANCE MARKING
+    # LATEST GEOFENCE (EVEN EXPIRED)
+    # USED BY ADMIN IN SOME CASES
     # ---------------------------------------------------------
     @staticmethod
     def get_latest_geofence():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        query = """
+        cursor.execute("""
             SELECT 
                 g.*,
-                IFNULL((SELECT COUNT(*) FROM attendance a 
-                        WHERE a.geofence_id = g.id), 0) AS attendance_count
+                IFNULL((SELECT COUNT(*) FROM attendance a WHERE a.geofence_id = g.id), 0)
+                    AS attendance_count
             FROM geofence g
             ORDER BY g.created_at DESC
             LIMIT 1
-        """
+        """)
 
-        cursor.execute(query)
         row = cursor.fetchone()
 
         cursor.close()

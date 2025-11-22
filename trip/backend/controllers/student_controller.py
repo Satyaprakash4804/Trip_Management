@@ -34,19 +34,11 @@ class StudentController:
         if not geofence:
             return {"success": False, "message": "No active geofence set by master!"}
 
-        # 3️⃣ Check if already marked for this geofence
-        if AttendanceModel.has_marked_attendance(user_id, geofence["id"]):
-            return {
-                "success": False,
-                "already_marked": True,
-                "message": "Attendance already marked for today!"
-            }
-
         fence_lat = float(geofence["latitude"])
         fence_lng = float(geofence["longitude"])
         radius = float(geofence["radius"])
 
-        # 4️⃣ Distance check
+        # 3️⃣ Distance check
         distance = geodesic((fence_lat, fence_lng), (user_lat, user_lng)).meters
 
         if distance > radius:
@@ -55,7 +47,7 @@ class StudentController:
                 "message": f"You are outside the geofence zone! Distance: {int(distance)}m"
             }
 
-        # 5️⃣ Mark Attendance
+        # 4️⃣ Mark Attendance
         AttendanceModel.mark_attendance({
             "user_id": user_id,
             "geofence_id": geofence["id"],

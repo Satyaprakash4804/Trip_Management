@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2 style="color:#1a237e;">Notifications</h2>
+
+<style>
+    .box {
+        background: white;
+        padding: 20px;
+        margin-top: 20px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    select, input, textarea {
+        width: 100%;
+        padding: 10px;
+        margin-top: 10px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+    }
+</style>
+
+<!-- SEND NOTIFICATION -->
+<div class="box">
+    <h3>Send Notification</h3>
+
+    <input id="title" placeholder="Title">
+    <textarea id="message" placeholder="Message"></textarea>
+
+    <label>Send To:</label>
+    <select id="send_to">
+        <option value="all">All</option>
+        <option value="student">Students</option>
+        <option value="admin">Admins</option>
+        <option value="super_admin">Super Admins</option>
+    </select>
+
+    <button class="btn" onclick="sendNotification()">Send</button>
+
+    <p id="sendMsg"></p>
+</div>
+
+<!-- NOTIFICATION LIST -->
+<div class="box">
+    <h3>All Notifications</h3>
+
+    <table id="notifyTable">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Message</th>
+                <th>Sent To</th>
+                <th>Sender</th>
+                <th>Time</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+<script>
+function sendNotification() {
+    let user = JSON.parse(localStorage.getItem("user"));
+
+    let data = {
+        title: document.getElementById("title").value,
+        message: document.getElementById("message").value,
+        send_to: document.getElementById("send_to").value,
+        sender_id: user.id
+    };
+
+    fetch("/api/notifications/send", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify(data)
+    })
+    .then(r=>r.json())
+    .then(d=>{
+        document.getElementById("sendMsg").innerHTML=d.message;
+        document.getElementById("sendMsg").style.color = d.success?"green":"red";
+        loadNotifications();
+    });
+}
+
+function loadNotifications() {
+    fetch("/api/notifications/list")
+    .then(r=>r.json())
+    .then(d=>{
+        let tbody = document.querySelector("#notifyTable tbody");
+        tbody.innerHTML = "";
+
+        d.data.forEach(n=>{
+            tbody.innerHTML += `
+                <tr>
+                    <td>${n.title}</td>
+                    <td>${n.message}</td>
+                    <td>${n.send_to}</td>
+                    <td>${n.sender_name}</td>
+                    <td>${n.timestamp}</td>
+                </tr>
+            `;
+        });
+    });
+}
+
+loadNotifications();
+</script>
+
+{% endblock %}

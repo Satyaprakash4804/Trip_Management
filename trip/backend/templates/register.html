@@ -61,20 +61,10 @@
         background: #fafafa;
     }
 
-    input:invalid, textarea:invalid {
-        border-color: red;
-    }
-
-    .error {
-        color: red;
-        font-size: 13px;
-        margin-top: 4px;
-        display: none;
-    }
-
-    input:invalid ~ .error,
-    textarea:invalid ~ .error {
-        display: block;
+    input:focus, textarea:focus {
+        background: white;
+        border-color: #1a237e;
+        box-shadow: 0 0 6px rgba(26,35,126,0.2);
     }
 
     .file-input {
@@ -117,6 +107,18 @@
         border: none;
         border-radius: 8px;
         cursor: pointer;
+        transition: 0.3s;
+    }
+
+    .submit-btn:hover {
+        background: #283593;
+    }
+
+    #msg {
+        margin-top: 15px;
+        text-align: center;
+        font-size: 15px;
+        font-weight: 500;
     }
 </style>
 
@@ -130,101 +132,116 @@
         <input type="hidden" name="user_id" value="{{ user_id }}">
 
         <div class="input-group">
-            <label>Full Name</label>
-            <input name="name" placeholder="Enter your full name" required>
-            <span class="error">* Full Name is required</span>
+            <label>Full Name *</label>
+            <input name="name" id="name" required placeholder="Enter your full name">
         </div>
 
         <div class="input-group">
-            <label>Mobile Number</label>
-            <input name="mobile" placeholder="Enter mobile number" required pattern="[0-9]{10}">
-            <span class="error">* Enter valid 10-digit mobile number</span>
+            <label>Mobile Number *</label>
+            <input name="mobile" id="mobile" required placeholder="Enter mobile number" maxlength="10">
         </div>
 
         <div class="input-group">
-            <label>Email Address</label>
-            <input name="email" placeholder="Enter email address" type="email" required>
-            <span class="error">* Valid email is required</span>
+            <label>Email Address *</label>
+            <input name="email" id="email" type="email" required placeholder="Enter email address">
         </div>
 
         <div class="input-group">
-            <label>College ID</label>
-            <input name="college_id" placeholder="Enter your college ID" required>
-            <span class="error">* College ID is required</span>
+            <label>College ID *</label>
+            <input name="college_id" id="college_id" required placeholder="Enter your college ID">
         </div>
 
-        <!-- LIVE SELFIE -->
+        <!-- LIVE SELFIE CAPTURE -->
         <div class="input-group">
-            <label>Capture Selfie (Live Camera)</label>
+            <label>Capture Selfie (Live Camera) *</label>
+
             <div class="camera-box">
                 <video id="camera" autoplay></video>
                 <button type="button" class="capture-btn" onclick="captureSelfie()">📸 Capture Selfie</button>
             </div>
-            <input type="hidden" name="selfie" id="selfieData" required>
+
+            <input type="hidden" name="selfie" id="selfieData">
             <p id="selfieMsg" style="color:green;"></p>
-            <span id="selfieError" class="error">* Selfie is required</span>
         </div>
 
         <div class="input-group">
-            <label>Upload College ID Card</label>
-            <input type="file" name="college_id_card" class="file-input" required>
-            <span class="error">* Please upload college ID card</span>
+            <label>Upload College ID Card *</label>
+            <input type="file" name="college_id_card" id="college_id_card" class="file-input" required>
         </div>
 
         <div class="input-group">
-            <label>Aadhar (Student)</label>
-            <input type="file" name="aadhar_student" class="file-input" required>
-            <span class="error">* Upload student Aadhar</span>
+            <label>Aadhar (Student) *</label>
+            <input type="file" name="aadhar_student" id="aadhar_student" class="file-input" required>
         </div>
 
         <div class="input-group">
-            <label>Aadhar (Parent)</label>
-            <input type="file" name="aadhar_parent" class="file-input" required>
-            <span class="error">* Upload parent Aadhar</span>
+            <label>Aadhar (Parent) *</label>
+            <input type="file" name="aadhar_parent" id="aadhar_parent" class="file-input" required>
         </div>
 
         <div class="input-group">
-            <label>Health Issues (If any)</label>
+            <label>Health Issues (Optional)</label>
             <textarea name="health_issue" placeholder="Describe any medical conditions"></textarea>
         </div>
 
         <button class="submit-btn" type="submit">Submit Registration</button>
+
         <p id="msg"></p>
     </form>
+
 </div>
 
 <script>
+// CAMERA START
 navigator.mediaDevices.getUserMedia({ video: true })
     .then(stream => {
         document.getElementById("camera").srcObject = stream;
     });
 
+// SELFIE CAPTURE
 function captureSelfie() {
     let video = document.getElementById("camera");
     let canvas = document.createElement("canvas");
+
     const maxWidth = 720;
     const scale = maxWidth / video.videoWidth;
 
     canvas.width = maxWidth;
     canvas.height = video.videoHeight * scale;
+
     let ctx = canvas.getContext("2d");
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     let compressedImage = canvas.toDataURL("image/jpeg", 0.6);
     document.getElementById("selfieData").value = compressedImage;
 
-    document.getElementById("selfieMsg").innerHTML = "Selfie captured successfully ✔";
-    document.getElementById("selfieError").style.display = "none";
+    document.getElementById("selfieMsg").innerHTML =
+        "Selfie captured successfully ✔";
 }
 
+
+// FORM SUBMIT VALIDATION
 document.getElementById("regForm").onsubmit = function(e) {
+    e.preventDefault();
+
+    let msg = document.getElementById("msg");
+
+    // Validate required selfie
     if (!document.getElementById("selfieData").value) {
-        document.getElementById("selfieError").style.display = "block";
-        e.preventDefault();
+        msg.innerHTML = "Please capture a selfie before submitting.";
+        msg.style.color = "red";
         return;
     }
 
-    e.preventDefault();
+    // Validate mobile
+    let mobile = document.getElementById("mobile").value.trim();
+    if (!/^[6-9]\d{9}$/.test(mobile)) {
+        msg.innerHTML = "Invalid mobile number. Must be 10 digits.";
+        msg.style.color = "red";
+        return;
+    }
+
+    // Actually send form
     let fd = new FormData(this);
 
     fetch("/api/auth/register_complete", {
@@ -233,10 +250,12 @@ document.getElementById("regForm").onsubmit = function(e) {
     })
     .then(r => r.json())
     .then(d => {
-        let msg = document.getElementById("msg");
         msg.innerHTML = d.message;
         msg.style.color = d.success ? "green" : "red";
-        if (d.success) setTimeout(() => window.location.href = "/login", 1200);
+
+        if (d.success) {
+            setTimeout(() => window.location.href = "/login", 1200);
+        }
     });
 };
 </script>

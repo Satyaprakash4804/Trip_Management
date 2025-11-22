@@ -184,7 +184,8 @@ function renderTables(filter) {
     st.innerHTML = "";
     ad.innerHTML = "";
 
-    attendanceData.students.forEach(x => {
+    (attendanceData.admins || []).forEach(x => {
+
         if(filter !== "all" && x.landmark !== filter) return;
 
         let dt = x.timestamp.split(" ");

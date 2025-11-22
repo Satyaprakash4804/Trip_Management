@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+    .reg-box {
+        width: 600px;
+        background: white;
+        margin: 20px auto;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        animation: fadeIn 0.7s ease;
+    }
+
+    h2 {
+        text-align: center;
+        color: #1a237e;
+    }
+
+    input, textarea {
+        width: 100%;
+        padding: 12px;
+        margin-top: 12px;
+        border: 1px solid #bbb;
+        border-radius: 6px;
+    }
+
+    .btn-register {
+        width: 100%;
+        padding: 14px;
+        margin-top: 20px;
+        background: #1a237e;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: .3s;
+    }
+
+    .btn-register:hover {
+        background: #283593;
+    }
+
+    .preview {
+        margin-top: 10px;
+        height: 100px;
+    }
+</style>
+
+<div class="reg-box">
+    <h2>Student Registration</h2>
+
+    <input id="name" placeholder="Full Name">
+    <input id="mobile" placeholder="Mobile Number">
+    <input id="email" placeholder="Email">
+    <input id="college_id" placeholder="College ID">
+    <input id="username" placeholder="Preferred Username">
+    <input id="password" placeholder="Password" type="password">
+
+    <textarea id="health_issue" placeholder="Any Health Issue"></textarea>
+    <textarea id="suggestions" placeholder="Suggestions (optional)"></textarea>
+
+    <label>Upload Selfie:</label>
+    <input type="file" id="selfie" accept="image/*" onchange="previewImg(event,'selfiePrev')">
+    <img id="selfiePrev" class="preview">
+
+    <label>Upload Aadhaar (Student):</label>
+    <input type="file" id="aadhar_student" accept="image/*">
+
+    <label>Upload Aadhaar (Parent):</label>
+    <input type="file" id="aadhar_parent" accept="image/*">
+
+    <br><br>
+    <input type="checkbox" id="terms"> I agree to all terms & conditions.
+
+    <button class="btn-register" onclick="registerUser()">Submit</button>
+
+    <p id="msg"></p>
+</div>
+
+<script>
+function previewImg(event, id){
+    document.getElementById(id).src = URL.createObjectURL(event.target.files[0]);
+}
+
+function registerUser() {
+    if (!document.getElementById("terms").checked) {
+        showMsg("Please accept terms.", "red");
+        return;
+    }
+
+    let formData = new FormData();
+    formData.append("name", document.getElementById("name").value);
+    formData.append("mobile", document.getElementById("mobile").value);
+    formData.append("email", document.getElementById("email").value);
+    formData.append("college_id", document.getElementById("college_id").value);
+    formData.append("username", document.getElementById("username").value);
+    formData.append("password", document.getElementById("password").value);
+    formData.append("health_issue", document.getElementById("health_issue").value);
+    formData.append("suggestions", document.getElementById("suggestions").value);
+
+    formData.append("selfie", document.getElementById("selfie").files[0]);
+    formData.append("aadhar_student", document.getElementById("aadhar_student").files[0]);
+    formData.append("aadhar_parent", document.getElementById("aadhar_parent").files[0]);
+
+    fetch("/api/auth/register", {
+        method: "POST",
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (!data.success) {
+            showMsg(data.message, "red");
+        } else {
+            showMsg("Registered successfully!", "green");
+        }
+    });
+}
+
+function showMsg(msg, color){
+    let m = document.getElementById("msg");
+    m.innerHTML = msg;
+    m.style.color = color;
+}
+</script>
+
+{% endblock %}

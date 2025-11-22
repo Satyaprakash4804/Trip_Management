@@ -44,11 +44,27 @@
         font-size: 20px;
         font-weight: bold;
     }
+
+    /* Notification card */
+    .notify-card {
+        background:#fff7e6;
+        border-left:6px solid #ff9800;
+        padding:15px;
+        border-radius:10px;
+        margin-top:20px;
+        box-shadow:0 4px 10px rgba(0,0,0,0.1);
+    }
 </style>
 
 <button class="logout-btn" onclick="logoutUser()">Logout</button>
 
 <h2 style="color:#1a237e; margin-top:60px;">Student Dashboard</h2>
+
+<!-- ========= NOTIFICATIONS AREA ========= -->
+<div id="notifyArea" class="notify-card" style="display:none;">
+    <h3 style="margin:0;color:#e65100;">Notifications</h3>
+    <ul id="notifyList"></ul>
+</div>
 
 <!-- ========= MARK ATTENDANCE ========= -->
 <div class="card">
@@ -99,7 +115,7 @@ function logoutUser() {
 }
 
 /* -----------------------
-   ON PAGE LOAD → CHECK LOGIN
+   ON PAGE LOAD → CHECK LOGIN + LOAD NOTIFICATIONS
 -------------------------*/
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -114,8 +130,32 @@ document.addEventListener("DOMContentLoaded", () => {
 
         CURRENT_USER = res.user;
         checkGeoStatus();
+        loadNotifications();       // NEW: load notifications on dashboard
     });
 });
+
+/* -----------------------
+   LOAD NOTIFICATIONS
+-------------------------*/
+function loadNotifications() {
+    fetch("/api/student/notifications", { credentials:"include" })
+    .then(r => r.json())
+    .then(res => {
+
+        if (!res.success || res.data.length === 0) {
+            return; // no notifications
+        }
+
+        document.getElementById("notifyArea").style.display = "block";
+
+        let list = document.getElementById("notifyList");
+        list.innerHTML = "";
+
+        res.data.forEach(n => {
+            list.innerHTML += `<li style="margin:6px 0;">${n.message}</li>`;
+        });
+    });
+}
 
 /* -----------------------
    CHECK IF MASTER ENABLED GEOFENCE
@@ -164,20 +204,9 @@ function markAttendance() {
         })
         .then(r => r.json())
         .then(d => {
-
             let msg = document.getElementById("attMsg");
-            let btn = document.getElementById("markBtn");
-
             msg.innerHTML = d.message;
             msg.style.color = d.success ? "green" : "red";
-
-            // Disable button after successful OR already marked
-            if (d.success || d.already_marked) {
-                btn.disabled = true;
-                btn.classList.add("disabled-btn");
-                btn.innerText = "Attendance Marked";
-            }
-
         });
 
     }, () => {
